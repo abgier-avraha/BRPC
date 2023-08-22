@@ -1,9 +1,9 @@
-import { startServer, createApi } from "../../server/src";
+import { startServer, createApi } from "../../server/src/index";
 
 export type ApiType = typeof api;
 
-export function startTestApi() {
-  startServer(api);
+export async function startTestApi() {
+  await startServer(api);
 }
 
 type ServerContext = {};

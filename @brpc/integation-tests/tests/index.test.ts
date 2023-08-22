@@ -4,11 +4,11 @@ import { startTestApi } from "./server";
 
 test("Call server", async () => {
   // Arrange
-  startTestApi();
+  await startTestApi();
   const client = getTestClient();
 
   // Act
-  const res = await client.helloWorld({ phrase: "Hello world!" });
+  const res = await client.echo({ phrase: "Hello world!" });
 
   // Assert
   expect(res).toBe("Hello world!");

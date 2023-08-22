@@ -1,3 +1,5 @@
+import express from "express";
+
 export function createApi<
   Context extends Object,
   T = {
@@ -10,14 +12,40 @@ export function createApi<
 export function startServer<Context extends Object, T>(
   api: BrpcApi<Context, T>
 ) {
-  // TODO: create server
+  return new Promise<void>((res) => {
+    console.log("Initializing server...");
+    const app = express();
+    app.use(express.text());
 
-  Object.keys(api as Object).forEach((_key) => {
-    // api[key].handle
-    // TODO: add routes
+    Object.keys(api as Object).forEach((key) => {
+      console.log(`Creating rpc: /${key}`);
+
+      app.post(`/${key}`, async (req, res) => {
+        console.log(`Executing rpc: /${key}`);
+        // TODO: superjson parsing
+        const parsedRequest = JSON.parse(req.body);
+        console.log(parsedRequest);
+
+        // TODO: create context
+        const context = {};
+        const apiHandlerResult = await api[
+          key as keyof BrpcApi<Context, T>
+        ].handle(parsedRequest, context);
+
+        console.log("Sending response");
+        console.log(apiHandlerResult);
+
+        // TODO: superjson serialisation
+        const serialisedResponse = JSON.stringify(apiHandlerResult);
+        res.send(serialisedResponse);
+      });
+    });
+
+    app.listen(3000, () => {
+      console.log("Started 🅱️ rpc server!");
+      res();
+    });
   });
-
-  // TODO: start server
 }
 
 type BrpcApi<

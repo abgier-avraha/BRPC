@@ -1,3 +1,5 @@
+import fetch from "cross-fetch";
+
 type BrpcApi<
   Context extends Object,
   T = Record<string, Brpc<any, any, Context>>
@@ -15,16 +17,29 @@ type Client<T extends BrpcApi<any>> = {
   ) => ReturnType<T[K]["handle"]>;
 };
 
-export function createChannel<T extends BrpcApi<any>>(): Client<T> {
+export function createChannel<T extends BrpcApi<any>>(host: string): Client<T> {
   return new Proxy(new Object(), {
     get(target, name) {
-      // TODO: serialise with superjson
-      // TODO: generate request
-      // TODO: execute and await request
-      // TODO: parse response with superjson
-      // TODO: return response
-      // console.log(target);
-      return (req: { phrase: string }) => req.phrase;
+      return (req: any) =>
+        new Promise(async (res, rej) => {
+          console.log(`Sending request to ${host}/${name.toString()}`);
+          console.log(req);
+          // TODO: superjson serialisation
+          const serialisedRequest = JSON.stringify(req);
+          const response = await fetch(`${host}/${name.toString()}`, {
+            method: "post",
+            headers: {
+              "content-type": "text/plain",
+            },
+            body: serialisedRequest,
+          });
+          const rawResponse = await response.text();
+          // TODO: superjson parsing
+          const parsedResponse = JSON.parse(rawResponse);
+          console.log(`Received response`);
+          console.log(parsedResponse);
+          res(parsedResponse);
+        });
     },
   }) as any;
 }
