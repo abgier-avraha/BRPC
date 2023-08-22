@@ -6,8 +6,8 @@ export function createApi<
   T extends Record<
     string,
     Brpc<
-      z.Schema<Parameters<T[keyof T]["handle"]>[0]>,
-      z.Schema<Awaited<ReturnType<T[keyof T]["handle"]>>>,
+      z.Schema<Parameters<T[keyof T]["handler"]>[0]>,
+      z.Schema<Awaited<ReturnType<T[keyof T]["handler"]>>>,
       Context
     >
   >
@@ -47,7 +47,7 @@ export function startServer<Context extends Object, T>(
         rpc.requestSchema.parse(parsedRequest);
 
         // Handle
-        const apiHandlerResult = await rpc.handle(parsedRequest, context);
+        const apiHandlerResult = await rpc.handler(parsedRequest, context);
 
         // Validate output
         rpc.responseSchema.parse(apiHandlerResult);
@@ -81,7 +81,7 @@ interface Brpc<
   ResSchema extends z.Schema,
   Context
 > {
-  handle: (
+  handler: (
     req: z.infer<ReqSchema>,
     ctx: Context
   ) => Promise<z.infer<ResSchema>>;

@@ -8,9 +8,9 @@ An experiment using Typescript's `import type` feature, super JSON and proxies t
 
 ```ts
 import { startServer, createApi } from "../../server/src/index";
+import { z } from "zod";
 
 export type ApiType = typeof api;
-import { z } from "zod";
 
 const RequestSchema = z.object({
   phrase: z.string(),
@@ -22,7 +22,7 @@ type ServerContext = {};
 
 const api = createApi({
   echo: {
-    handle: async (req: z.infer<typeof RequestSchema>, _ctx: ServerContext) =>
+    handler: async (req: z.infer<typeof RequestSchema>, _ctx: ServerContext) =>
       req.phrase,
     requestSchema: RequestSchema,
     responseSchema: ResponseSchema,

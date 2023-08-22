@@ -6,15 +6,15 @@ type BrpcApi<
 > = T;
 
 interface Brpc<Req, Res, Context> {
-  handle: (req: Req, ctx: Context) => Promise<Res>;
+  handler: (req: Req, ctx: Context) => Promise<Res>;
   // TODO: zod req and response schemas
   validate: (req: Req, ctx: Context) => boolean;
 }
 
 type Client<T extends BrpcApi<any>> = {
   [K in keyof T]: (
-    req: Parameters<T[K]["handle"]>[0]
-  ) => ReturnType<T[K]["handle"]>;
+    req: Parameters<T[K]["handler"]>[0]
+  ) => ReturnType<T[K]["handler"]>;
 };
 
 export function createChannel<T extends BrpcApi<any>>(host: string): Client<T> {

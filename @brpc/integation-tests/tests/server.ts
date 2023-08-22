@@ -17,7 +17,7 @@ type ServerContext = {};
 
 const api = createApi({
   echo: {
-    handle: async (req: z.infer<typeof RequestSchema>, _ctx: ServerContext) =>
+    handler: async (req: z.infer<typeof RequestSchema>, _ctx: ServerContext) =>
       req.phrase,
     requestSchema: RequestSchema,
     responseSchema: ResponseSchema,
