@@ -19,9 +19,9 @@ type Client<T extends BrpcApi<any>> = {
 
 export function createChannel<T extends BrpcApi<any>>(host: string): Client<T> {
   return new Proxy(new Object(), {
-    get(target, name) {
+    get(_target, name) {
       return (req: any) =>
-        new Promise(async (res, rej) => {
+        new Promise(async (res) => {
           console.log(`Sending request to ${host}/${name.toString()}`);
           console.log(req);
           // TODO: superjson serialisation

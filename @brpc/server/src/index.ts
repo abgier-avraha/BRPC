@@ -2,9 +2,14 @@ import express from "express";
 
 export function createApi<
   Context extends Object,
-  T extends {
-    [key: string]: Brpc<any, any, Context>;
-  }
+  T extends Record<
+    string,
+    Brpc<
+      Parameters<T[keyof T]["handle"]>[0],
+      Awaited<ReturnType<T[keyof T]["handle"]>>,
+      Context
+    >
+  >
 >(rpcs: T): BrpcApi<Context, T> {
   return rpcs;
 }
