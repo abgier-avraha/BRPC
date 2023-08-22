@@ -7,7 +7,7 @@ An experiment using Typescript's `import type` feature, super JSON and proxies t
 ### Server
 
 ```ts
-import { startServer, createApi } from "../../server/src/index";
+import { startServer, createApi } from "@brpc/server/index";
 import { z } from "zod";
 
 export type ApiType = typeof api;
@@ -35,10 +35,10 @@ await startServer(api);
 ### Client
 
 ```ts
-import { createChannel } from "../../client/src";
+import { createChannel } from "@brpc/client/index";
 // Important! Using `import type` prevents the server from from being bundled with the client
 // `import type` declarations are erased during compilation and are only used for static analysis
-import type { ApiType } from "./server";
+import type { ApiType } from "../../server";
 
 const client = createChannel<ApiType>("http://localhost:3000");
 const res = await client.echo({ phrase: "Hello world!" });
