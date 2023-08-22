@@ -1,6 +1,23 @@
 import { expect, test } from "vitest";
-import { returns3 } from "../src/index";
+import { startServer, createApi } from "../src/server";
+import { createChannel } from "../src/client";
 
-test("returns 3", () => {
-  expect(returns3()).toBe(3);
+type ServerContext = {};
+
+test("Call server", async () => {
+  // Arrange
+  const api = createApi<ServerContext>({
+    echo: {
+      handle: async (req: { phrase: string }) => req.phrase,
+      validate: (req: { phrase: string }) => true,
+    },
+  });
+  startServer(api);
+  const client = createChannel<typeof api>();
+
+  // Act
+  const res = await client.helloWorld({ phrase: "Hello world!" });
+
+  // Assert
+  // TODO:
 });
