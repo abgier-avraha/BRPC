@@ -11,5 +11,8 @@
     "typescript": "^5.0.2",
     "vite": "^4.4.9",
     "vitest": "^0.34.2"
+  },
+  "dependencies": {
+    "zod": "^3.22.2"
   }
 }

@@ -25,13 +25,13 @@ export function createChannel<T extends BrpcApi<any>>(host: string): Client<T> {
           console.log(`Sending request to ${host}/${name.toString()}`);
           console.log(req);
           // TODO: superjson serialisation
-          const serialisedRequest = JSON.stringify(req);
+          const serializedRequest = JSON.stringify(req);
           const response = await fetch(`${host}/${name.toString()}`, {
             method: "post",
             headers: {
               "content-type": "text/plain",
             },
-            body: serialisedRequest,
+            body: serializedRequest,
           });
           const rawResponse = await response.text();
           // TODO: superjson parsing

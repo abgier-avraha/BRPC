@@ -1,12 +1,13 @@
 import express from "express";
+import { z } from "zod";
 
 export function createApi<
   Context extends Object,
   T extends Record<
     string,
     Brpc<
-      Parameters<T[keyof T]["handle"]>[0],
-      Awaited<ReturnType<T[keyof T]["handle"]>>,
+      z.Schema<Parameters<T[keyof T]["handle"]>[0]>,
+      z.Schema<Awaited<ReturnType<T[keyof T]["handle"]>>>,
       Context
     >
   >
@@ -28,21 +29,36 @@ export function startServer<Context extends Object, T>(
       app.post(`/${key}`, async (req, res) => {
         console.log(`Executing rpc: /${key}`);
         // TODO: superjson parsing
+        // Parse request
         const parsedRequest = JSON.parse(req.body);
         console.log(parsedRequest);
 
         // TODO: create context
         const context = {};
-        const apiHandlerResult = await (
-          api[key as keyof BrpcApi<Context, T>] as any
-        ).handle(parsedRequest, context);
 
+        // Get rpc
+        const rpc = api[key as keyof BrpcApi<Context, T>] as Brpc<
+          any,
+          any,
+          any
+        >;
+
+        // Validate input
+        rpc.requestSchema.parse(parsedRequest);
+
+        // Handle
+        const apiHandlerResult = await rpc.handle(parsedRequest, context);
+
+        // Validate output
+        rpc.responseSchema.parse(apiHandlerResult);
+
+        // Response
         console.log("Sending response");
         console.log(apiHandlerResult);
 
         // TODO: superjson serialisation
-        const serialisedResponse = JSON.stringify(apiHandlerResult);
-        res.send(serialisedResponse);
+        const serializedResponse = JSON.stringify(apiHandlerResult);
+        res.send(serializedResponse);
       });
     });
 
@@ -60,8 +76,16 @@ type BrpcApi<
 
 // TODO: grouping rpcs and applying middleware to groups
 // Maybe just use decorators to annotate?
-interface Brpc<Req, Res, Context> {
-  handle: (req: Req, ctx: Context) => Promise<Res>;
+interface Brpc<
+  ReqSchema extends z.Schema,
+  ResSchema extends z.Schema,
+  Context
+> {
+  handle: (
+    req: z.infer<ReqSchema>,
+    ctx: Context
+  ) => Promise<z.infer<ResSchema>>;
   // TODO: zod req and response schemas
-  validate: (req: Req, ctx: Context) => boolean;
+  requestSchema: ReqSchema;
+  responseSchema: ResSchema;
 }
