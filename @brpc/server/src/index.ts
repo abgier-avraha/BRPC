@@ -1,15 +1,3 @@
-export type BrpcApi<
-  Context extends Object,
-  T = Record<string, Brpc<any, any, Context>>
-> = T;
-
-// TODO: grouping rpcs and applying middleware to groups
-export interface Brpc<Req, Res, Context> {
-  handle: (req: Req, ctx: Context) => Promise<Res>;
-  // TODO: zod req and response schemas
-  validate: (req: Req, ctx: Context) => boolean;
-}
-
 export function createApi<
   Context extends Object,
   T = {
@@ -30,4 +18,17 @@ export function startServer<Context extends Object, T>(
   });
 
   // TODO: start server
+}
+
+type BrpcApi<
+  Context extends Object,
+  T = Record<string, Brpc<any, any, Context>>
+> = T;
+
+// TODO: grouping rpcs and applying middleware to groups
+// Maybe just use decorators to annotate?
+interface Brpc<Req, Res, Context> {
+  handle: (req: Req, ctx: Context) => Promise<Res>;
+  // TODO: zod req and response schemas
+  validate: (req: Req, ctx: Context) => boolean;
 }

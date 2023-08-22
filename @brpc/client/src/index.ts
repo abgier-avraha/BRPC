@@ -1,4 +1,13 @@
-import type { BrpcApi } from "./server";
+type BrpcApi<
+  Context extends Object,
+  T = Record<string, Brpc<any, any, Context>>
+> = T;
+
+interface Brpc<Req, Res, Context> {
+  handle: (req: Req, ctx: Context) => Promise<Res>;
+  // TODO: zod req and response schemas
+  validate: (req: Req, ctx: Context) => boolean;
+}
 
 type Client<T extends BrpcApi<any>> = {
   [K in keyof T]: (
@@ -14,7 +23,8 @@ export function createChannel<T extends BrpcApi<any>>(): Client<T> {
       // TODO: execute and await request
       // TODO: parse response with superjson
       // TODO: return response
-      return `${target} ${name.toString()}`;
+      // console.log(target);
+      return (req: { phrase: string }) => req.phrase;
     },
   }) as any;
 }
