@@ -8,9 +8,11 @@ export async function startTestApi() {
 
 type ServerContext = {};
 
-const api = createApi<ServerContext>({
+const rpcs = {
   echo: {
     handle: async (req: { phrase: string }) => req.phrase,
     validate: (req: { phrase: string }) => true,
   },
-});
+};
+
+const api = createApi<ServerContext, typeof rpcs>(rpcs);

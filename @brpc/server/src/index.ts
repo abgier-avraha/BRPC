@@ -2,7 +2,7 @@ import express from "express";
 
 export function createApi<
   Context extends Object,
-  T = {
+  T extends {
     [key: string]: Brpc<any, any, Context>;
   }
 >(rpcs: T): BrpcApi<Context, T> {
@@ -28,9 +28,9 @@ export function startServer<Context extends Object, T>(
 
         // TODO: create context
         const context = {};
-        const apiHandlerResult = await api[
-          key as keyof BrpcApi<Context, T>
-        ].handle(parsedRequest, context);
+        const apiHandlerResult = await (
+          api[key as keyof BrpcApi<Context, T>] as any
+        ).handle(parsedRequest, context);
 
         console.log("Sending response");
         console.log(apiHandlerResult);
