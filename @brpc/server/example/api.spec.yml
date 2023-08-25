@@ -1,0 +1,46 @@
+openapi: 3.1.0
+info:
+  title: BRPC OpenAPI 3.1
+  version: 1.0.0
+paths:
+  /echo:
+    post:
+      operationId: echo
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              $ref: "#/components/schemas/EchoRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                $ref: "#/components/schemas/EchoResponse"
+components:
+  schemas:
+    EchoRequest:
+      type: object
+      properties:
+        phrase:
+          type: string
+        date:
+          type: string
+          format: date-time
+      required:
+        - phrase
+        - date
+      additionalProperties: false
+    EchoResponse:
+      type: object
+      properties:
+        phrase:
+          type: string
+        date:
+          type: string
+          format: date-time
+      required:
+        - phrase
+        - date
+      additionalProperties: false

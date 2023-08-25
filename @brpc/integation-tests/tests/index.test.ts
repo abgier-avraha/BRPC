@@ -1,58 +1,66 @@
 import { expect, test } from "vitest";
-import { getTestClient } from "./client";
+import type { ApiType } from "./server";
 import { testApi } from "./server";
 import { generateOpenApiSpec, startServer } from "../../server/src";
+import { createChannel } from "../../client/src";
+import fetch from "cross-fetch";
+const fs = require("fs");
+const path = require("path");
 
-test("Call server", async () => {
+test("Execute RPC from Client Channel", async () => {
   // Arrange
-  await startServer(testApi);
-  const client = getTestClient();
+  const server = await startServer(testApi);
+  const client = createChannel<ApiType>("http://localhost:3000");
 
   // Act
-  const res = await client.echo({ phrase: "Hello world!" });
+  const res = await client.echo({
+    phrase: "Hello world!",
+    date: new Date("2020-01-01T00:00:00.000Z").toISOString(),
+  });
 
   // Assert
-  expect(res).toBe("Hello world!");
+  expect(res).toEqual({
+    phrase: "Hello world!",
+    date: new Date("2020-01-01T00:00:00.000Z").toISOString(),
+  });
+
+  // Cleanup
+  server.stop();
+});
+
+test("Execute RPC from Fetch", async () => {
+  // Arrange
+  const server = await startServer(testApi);
+
+  // Act
+  const req = {
+    phrase: "Hello world!",
+    date: new Date("2020-01-01T00:00:00.000Z").toISOString(),
+  };
+  const serializedRequest = JSON.stringify(req);
+  const response = await fetch("http://localhost:3000/echo", {
+    method: "post",
+    headers: {
+      "content-type": "text/plain",
+    },
+    body: serializedRequest,
+  });
+  const rawResponse = await response.text();
+  const parsedResponse = JSON.parse(rawResponse);
+
+  // Assert
+  expect(parsedResponse).toEqual({
+    phrase: "Hello world!",
+    date: new Date("2020-01-01T00:00:00.000Z").toISOString(),
+  });
+
+  // Cleanup
+  server.stop();
+});
+
+test("Generate OpenAPI Spec", async () => {
+  // Assert
   expect(generateOpenApiSpec(testApi)).toBe(
-    JSON.stringify({
-      openapi: "3.1.0",
-      // TODO: configurable title and version
-      info: { title: "BRPC OpenAPI 3.1", version: "1.0.0" },
-      paths: {
-        "/echo": {
-          post: {
-            operationId: "echo",
-            requestBody: {
-              content: {
-                "text/plain": {
-                  schema: { $ref: "#/components/schemas/echoRequest" },
-                },
-              },
-              required: true,
-            },
-            responses: {
-              "200": {
-                content: {
-                  "text/plain": {
-                    schema: { $ref: "#/components/schemas/echoResponse" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      components: {
-        schemas: {
-          echoRequest: {
-            type: "object",
-            properties: { phrase: { type: "string" } },
-            required: ["phrase"],
-            additionalProperties: false,
-          },
-          echoResponse: { type: "string" },
-        },
-      },
-    })
+    fs.readFileSync(path.join(__dirname, "api.spec.snapshot.yml"), "utf8")
   );
 });

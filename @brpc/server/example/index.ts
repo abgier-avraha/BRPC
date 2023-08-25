@@ -1,7 +1,13 @@
 import { z } from "zod";
-import { createApi } from "../../server/src/index";
+import {
+  createApi,
+  generateOpenApiSpec,
+  startServer,
+} from "../../server/src/index";
+const path = require("path");
+const fs = require("fs");
 
-export type ApiType = typeof testApi;
+export type ApiType = typeof api;
 
 type ServerContext = {};
 
@@ -15,7 +21,7 @@ const EchoResponseSchema = z.object({
   date: z.string().datetime(),
 });
 
-export const testApi = createApi({
+export const api = createApi({
   echo: {
     handler: async (
       req: z.infer<typeof EchoRequestSchema>,
@@ -25,3 +31,10 @@ export const testApi = createApi({
     responseSchema: EchoResponseSchema,
   },
 });
+
+startServer(api);
+
+fs.writeFileSync(
+  path.join(__dirname, "api.spec.yml"),
+  generateOpenApiSpec(api)
+);

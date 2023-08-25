@@ -1,6 +1,6 @@
 # 🅱️RPC
 
-An experiment using Typescript's `import type` feature, super JSON and proxies to achieve something like TRPC.
+An experiment using Typescript's `import type` feature and ES proxies to achieve something like TRPC. Uses standard JSON serialization for Open API spec compatibility.
 
 ## Example
 
@@ -32,7 +32,10 @@ const api = createApi({
 await startServer(api);
 
 // Optional OpenAPI spec generation
-generateOpenApiSpec(api);
+fs.writeFileSync(
+  path.join(__dirname, "api.spec.yml"),
+  generateOpenApiSpec(api)
+);
 ```
 
 ### Client

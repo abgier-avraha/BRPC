@@ -1,6 +1,7 @@
 import express from "express";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
+import yaml from "yaml";
 
 export function createApi<
   Context extends Object,
@@ -16,10 +17,12 @@ export function createApi<
   return rpcs;
 }
 
+// TODO: port option
 export function startServer<Context extends Object, T>(
-  api: BrpcApi<Context, T>
+  api: BrpcApi<Context, T>,
+  port = 3000
 ) {
-  return new Promise<void>((res) => {
+  return new Promise<{ stop: () => void }>((res) => {
     console.log("Initializing server...");
     const app = express();
     app.use(express.text());
@@ -29,7 +32,7 @@ export function startServer<Context extends Object, T>(
 
       app.post(`/${key}`, async (req, res) => {
         console.log(`Executing rpc: /${key}`);
-        // TODO: superjson parsing
+
         // Parse request
         const parsedRequest = JSON.parse(req.body);
         console.log(parsedRequest);
@@ -57,15 +60,15 @@ export function startServer<Context extends Object, T>(
         console.log("Sending response");
         console.log(apiHandlerResult);
 
-        // TODO: superjson serialisation
         const serializedResponse = JSON.stringify(apiHandlerResult);
+
         res.send(serializedResponse);
       });
     });
 
-    app.listen(3000, () => {
+    const server = app.listen(port, () => {
       console.log("Started 🅱️ rpc server!");
-      res();
+      res({ stop: () => server.close() });
     });
   });
 }
@@ -87,6 +90,8 @@ export function generateOpenApiSpec<Context extends Object, T>(
 
   Object.keys(api as Object).forEach((key) => {
     const rpc = api[key as keyof BrpcApi<Context, T>] as Brpc<any, any, any>;
+    const requestName = `${capitalize(key)}Request`;
+    const responseName = `${capitalize(key)}Response`;
 
     output.paths[`/${key}`] = {
       post: {
@@ -95,7 +100,7 @@ export function generateOpenApiSpec<Context extends Object, T>(
           content: {
             "text/plain": {
               schema: {
-                $ref: `#/components/schemas/${key}Request`,
+                $ref: `#/components/schemas/${requestName}`,
               },
             },
           },
@@ -106,7 +111,7 @@ export function generateOpenApiSpec<Context extends Object, T>(
             content: {
               "text/plain": {
                 schema: {
-                  $ref: `#/components/schemas/${key}Response`,
+                  $ref: `#/components/schemas/${responseName}`,
                 },
               },
             },
@@ -117,15 +122,15 @@ export function generateOpenApiSpec<Context extends Object, T>(
 
     output.components.schemas = {
       ...output.components.schemas,
-      ...zodToJsonSchema(rpc.requestSchema, `${key}Request`).definitions,
+      ...zodToJsonSchema(rpc.requestSchema, `${requestName}`).definitions,
     };
     output.components.schemas = {
       ...output.components.schemas,
-      ...zodToJsonSchema(rpc.responseSchema, `${key}Response`).definitions,
+      ...zodToJsonSchema(rpc.responseSchema, `${responseName}`).definitions,
     };
   });
 
-  return JSON.stringify(output);
+  return yaml.stringify(output);
 }
 
 export type BrpcApi<
@@ -144,7 +149,10 @@ interface Brpc<
     req: z.infer<ReqSchema>,
     ctx: Context
   ) => Promise<z.infer<ResSchema>>;
-  // TODO: zod req and response schemas
   requestSchema: ReqSchema;
   responseSchema: ResSchema;
+}
+
+function capitalize(string: string) {
+  return string.charAt(0).toUpperCase() + string.slice(1);
 }
