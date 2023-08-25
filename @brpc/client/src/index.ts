@@ -1,15 +1,5 @@
 import fetch from "cross-fetch";
-
-type BrpcApi<
-  Context extends Object,
-  T = Record<string, Brpc<any, any, Context>>
-> = T;
-
-interface Brpc<Req, Res, Context> {
-  handler: (req: Req, ctx: Context) => Promise<Res>;
-  // TODO: zod req and response schemas
-  validate: (req: Req, ctx: Context) => boolean;
-}
+import type { BrpcApi } from "../../server/src/index";
 
 type Client<T extends BrpcApi<any>> = {
   [K in keyof T]: (

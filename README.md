@@ -30,6 +30,9 @@ const api = createApi({
 });
 
 await startServer(api);
+
+// Optional OpenAPI spec generation
+generateOpenApiSpec(api);
 ```
 
 ### Client

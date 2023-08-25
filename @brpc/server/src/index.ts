@@ -1,5 +1,6 @@
 import express from "express";
 import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 
 export function createApi<
   Context extends Object,
@@ -69,7 +70,65 @@ export function startServer<Context extends Object, T>(
   });
 }
 
-type BrpcApi<
+export function generateOpenApiSpec<Context extends Object, T>(
+  api: BrpcApi<Context, T>
+) {
+  let output: any = {
+    openapi: "3.1.0",
+    info: {
+      title: "BRPC OpenAPI 3.1",
+      version: "1.0.0",
+    },
+    paths: {},
+    components: {
+      schemas: {},
+    },
+  };
+
+  Object.keys(api as Object).forEach((key) => {
+    const rpc = api[key as keyof BrpcApi<Context, T>] as Brpc<any, any, any>;
+
+    output.paths[`/${key}`] = {
+      post: {
+        operationId: key,
+        requestBody: {
+          content: {
+            "text/plain": {
+              schema: {
+                $ref: `#/components/schemas/${key}Request`,
+              },
+            },
+          },
+          required: true,
+        },
+        responses: {
+          "200": {
+            content: {
+              "text/plain": {
+                schema: {
+                  $ref: `#/components/schemas/${key}Response`,
+                },
+              },
+            },
+          },
+        },
+      },
+    };
+
+    output.components.schemas = {
+      ...output.components.schemas,
+      ...zodToJsonSchema(rpc.requestSchema, `${key}Request`).definitions,
+    };
+    output.components.schemas = {
+      ...output.components.schemas,
+      ...zodToJsonSchema(rpc.responseSchema, `${key}Response`).definitions,
+    };
+  });
+
+  return JSON.stringify(output);
+}
+
+export type BrpcApi<
   Context extends Object,
   T = Record<string, Brpc<any, any, Context>>
 > = T;
