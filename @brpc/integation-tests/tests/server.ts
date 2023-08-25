@@ -8,11 +8,17 @@ type ServerContext = {};
 const EchoRequestSchema = z.object({
   phrase: z.string(),
   date: z.string().datetime(),
+  nested: z.object({
+    arrayOfNumbers: z.array(z.number()),
+  }),
 });
 
 const EchoResponseSchema = z.object({
   phrase: z.string(),
   date: z.string().datetime(),
+  nested: z.object({
+    arrayOfNumbers: z.array(z.number()),
+  }),
 });
 
 export const testApi = createApi({
@@ -20,7 +26,7 @@ export const testApi = createApi({
     handler: async (
       req: z.infer<typeof EchoRequestSchema>,
       _ctx: ServerContext
-    ) => ({ phrase: req.phrase, date: req.date }),
+    ) => ({ phrase: req.phrase, date: req.date, nested: req.nested }),
     requestSchema: EchoRequestSchema,
     responseSchema: EchoResponseSchema,
   },

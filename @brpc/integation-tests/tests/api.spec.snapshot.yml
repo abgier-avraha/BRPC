@@ -28,9 +28,20 @@ components:
         date:
           type: string
           format: date-time
+        nested:
+          type: object
+          properties:
+            arrayOfNumbers:
+              type: array
+              items:
+                type: number
+          required:
+            - arrayOfNumbers
+          additionalProperties: false
       required:
         - phrase
         - date
+        - nested
       additionalProperties: false
     EchoResponse:
       type: object
@@ -40,7 +51,18 @@ components:
         date:
           type: string
           format: date-time
+        nested:
+          type: object
+          properties:
+            arrayOfNumbers:
+              type: array
+              items:
+                type: number
+          required:
+            - arrayOfNumbers
+          additionalProperties: false
       required:
         - phrase
         - date
+        - nested
       additionalProperties: false

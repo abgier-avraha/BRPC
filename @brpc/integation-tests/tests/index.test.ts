@@ -16,12 +16,18 @@ test("Execute RPC from Client Channel", async () => {
   const res = await client.echo({
     phrase: "Hello world!",
     date: new Date("2020-01-01T00:00:00.000Z").toISOString(),
+    nested: {
+      arrayOfNumbers: [3, 2, 5],
+    },
   });
 
   // Assert
   expect(res).toEqual({
     phrase: "Hello world!",
     date: new Date("2020-01-01T00:00:00.000Z").toISOString(),
+    nested: {
+      arrayOfNumbers: [3, 2, 5],
+    },
   });
 
   // Cleanup
@@ -30,15 +36,18 @@ test("Execute RPC from Client Channel", async () => {
 
 test("Execute RPC from Fetch", async () => {
   // Arrange
-  const server = await startServer(testApi);
+  const server = await startServer(testApi, 3001);
 
   // Act
   const req = {
     phrase: "Hello world!",
     date: new Date("2020-01-01T00:00:00.000Z").toISOString(),
+    nested: {
+      arrayOfNumbers: [3, 2, 5],
+    },
   };
   const serializedRequest = JSON.stringify(req);
-  const response = await fetch("http://localhost:3000/echo", {
+  const response = await fetch("http://localhost:3001/echo", {
     method: "post",
     headers: {
       "content-type": "text/plain",
@@ -52,6 +61,9 @@ test("Execute RPC from Fetch", async () => {
   expect(parsedResponse).toEqual({
     phrase: "Hello world!",
     date: new Date("2020-01-01T00:00:00.000Z").toISOString(),
+    nested: {
+      arrayOfNumbers: [3, 2, 5],
+    },
   });
 
   // Cleanup

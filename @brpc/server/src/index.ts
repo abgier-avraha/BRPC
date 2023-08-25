@@ -8,8 +8,12 @@ export function createApi<
   T extends Record<
     string,
     Brpc<
-      z.Schema<Parameters<T[keyof T]["handler"]>[0]>,
-      z.Schema<Awaited<ReturnType<T[keyof T]["handler"]>>>,
+      T[keyof T]["requestSchema"] extends z.Schema
+        ? T[keyof T]["requestSchema"]
+        : never,
+      T[keyof T]["responseSchema"] extends z.Schema
+        ? T[keyof T]["responseSchema"]
+        : never,
       Context
     >
   >
@@ -17,12 +21,11 @@ export function createApi<
   return rpcs;
 }
 
-// TODO: port option
 export function startServer<Context extends Object, T>(
   api: BrpcApi<Context, T>,
   port = 3000
 ) {
-  return new Promise<{ stop: () => void }>((res) => {
+  return new Promise<{ stop: () => Promise<void> }>((res) => {
     console.log("Initializing server...");
     const app = express();
     app.use(express.text());
@@ -68,7 +71,12 @@ export function startServer<Context extends Object, T>(
 
     const server = app.listen(port, () => {
       console.log("Started 🅱️ rpc server!");
-      res({ stop: () => server.close() });
+      res({
+        stop: () =>
+          new Promise<void>((res) => {
+            server.close(() => res());
+          }),
+      });
     });
   });
 }
