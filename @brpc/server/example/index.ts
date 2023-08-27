@@ -9,7 +9,9 @@ const fs = require("fs");
 
 export type ApiType = typeof api;
 
-type ServerContext = {};
+type ServerContext = {
+  user: { subject: string };
+};
 
 const EchoRequestSchema = z.object({
   phrase: z.string(),
@@ -21,16 +23,30 @@ const EchoResponseSchema = z.object({
   date: z.string().datetime(),
 });
 
-export const api = createApi({
-  echo: {
-    handler: async (
-      req: z.infer<typeof EchoRequestSchema>,
-      _ctx: ServerContext
-    ) => ({ phrase: req.phrase, date: req.date }),
-    requestSchema: EchoRequestSchema,
-    responseSchema: EchoResponseSchema,
+export const api = createApi(
+  {
+    echo: {
+      handler: async (
+        req: z.infer<typeof EchoRequestSchema>,
+        _ctx: ServerContext
+      ) => {
+        _ctx.user;
+        return { phrase: req.phrase, date: req.date };
+      },
+      requestSchema: EchoRequestSchema,
+      responseSchema: EchoResponseSchema,
+      policies: ["customPolicy"],
+    },
   },
-});
+  () => ({
+    user: { subject: "11111" },
+  }),
+  {
+    // TODO: create a logging middleware
+    default: [],
+    customPolicy: [],
+  }
+);
 
 startServer(api);
 

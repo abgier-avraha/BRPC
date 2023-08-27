@@ -1,13 +1,15 @@
 import fetch from "cross-fetch";
 import type { BrpcApi } from "../../server/src/index";
 
-type Client<T extends BrpcApi<any>> = {
-  [K in keyof T]: (
-    req: Parameters<T[K]["handler"]>[0]
-  ) => ReturnType<T[K]["handler"]>;
+type Client<T extends BrpcApi<any, any>> = {
+  [K in keyof T["api"]]: (
+    req: Parameters<T["api"][K]["handler"]>[0]
+  ) => ReturnType<T["api"][K]["handler"]>;
 };
 
-export function createChannel<T extends BrpcApi<any>>(host: string): Client<T> {
+export function createChannel<T extends BrpcApi<any, any>>(
+  host: string
+): Client<T> {
   return new Proxy(new Object(), {
     get(_target, name) {
       return (req: any) =>

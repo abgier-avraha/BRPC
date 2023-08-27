@@ -21,13 +21,18 @@ const EchoResponseSchema = z.object({
   }),
 });
 
-export const testApi = createApi({
-  echo: {
-    handler: async (
-      req: z.infer<typeof EchoRequestSchema>,
-      _ctx: ServerContext
-    ) => ({ phrase: req.phrase, date: req.date, nested: req.nested }),
-    requestSchema: EchoRequestSchema,
-    responseSchema: EchoResponseSchema,
+export const testApi = createApi(
+  {
+    echo: {
+      handler: async (
+        req: z.infer<typeof EchoRequestSchema>,
+        _ctx: ServerContext
+      ) => {
+        return { phrase: req.phrase, date: req.date, nested: req.nested };
+      },
+      requestSchema: EchoRequestSchema,
+      responseSchema: EchoResponseSchema,
+    },
   },
-});
+  () => ({})
+);
