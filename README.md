@@ -7,27 +7,52 @@ An experiment using Typescript's `import type` feature and ES proxies to achieve
 ### Server
 
 ```ts
-import { startServer, createApi } from "@brpc/server/index";
 import { z } from "zod";
+import { IMiddleware, createApi } from "../../server/src/index";
 
-export type ApiType = typeof api;
-
-const RequestSchema = z.object({
-  phrase: z.string(),
-});
-
-const ResponseSchema = z.string();
+export type ApiType = typeof testApi;
 
 type ServerContext = {};
 
-const api = createApi({
-  echo: {
-    handler: async (req: z.infer<typeof RequestSchema>, _ctx: ServerContext) =>
-      req.phrase,
-    requestSchema: RequestSchema,
-    responseSchema: ResponseSchema,
-  },
+const EchoRequestSchema = z.object({
+  phrase: z.string(),
+  date: z.string().datetime(),
+  nested: z.object({
+    arrayOfNumbers: z.array(z.number()),
+  }),
 });
+
+const EchoResponseSchema = z.object({
+  phrase: z.string(),
+  date: z.string().datetime(),
+  nested: z.object({
+    arrayOfNumbers: z.array(z.number()),
+  }),
+});
+
+export const testApi = createApi(
+  // Rpcs
+  {
+    echo: {
+      handler: async (
+        req: z.infer<typeof EchoRequestSchema>,
+        _ctx: ServerContext
+      ) => {
+        return { phrase: req.phrase, date: req.date, nested: req.nested };
+      },
+      requestSchema: EchoRequestSchema,
+      responseSchema: EchoResponseSchema,
+    },
+  },
+  // Server context fetcher
+  () => ({}),
+  {
+    // Your policies
+    base: [
+      // Your middleware
+    ],
+  }
+);
 
 await startServer(api);
 

@@ -7,6 +7,8 @@ type Client<T extends BrpcApi<any, any>> = {
   ) => ReturnType<T["api"][K]["handler"]>;
 };
 
+// TODO: middleware
+
 export function createChannel<T extends BrpcApi<any, any>>(
   host: string
 ): Client<T> {

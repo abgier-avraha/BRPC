@@ -1,32 +1,29 @@
-import express from "express";
-import { IncomingHttpHeaders } from "http";
+import express, { Request, Response } from "express";
 import yaml from "yaml";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
-// TODO: policies arg, Map of policy names and middleware {default: IMiddleware[], customPolicy: IMiddleware[]}
-// TODO: for middleware pass req, res callback, continue callback and context (res.status(404).send("text"))
 export function createApi<
   Context extends Object,
-  Policies extends IPolicies,
-  Rpcs extends Record<
+  Policies extends IPolicies<Context>,
+  Api extends Record<
     string,
     Brpc<
-      Rpcs[keyof Rpcs]["requestSchema"] extends z.Schema
-        ? Rpcs[keyof Rpcs]["requestSchema"]
+      Api[keyof Api]["requestSchema"] extends z.Schema
+        ? Api[keyof Api]["requestSchema"]
         : never,
-      Rpcs[keyof Rpcs]["responseSchema"] extends z.Schema
-        ? Rpcs[keyof Rpcs]["responseSchema"]
+      Api[keyof Api]["responseSchema"] extends z.Schema
+        ? Api[keyof Api]["responseSchema"]
         : never,
       Context,
       Policies
     >
   >
 >(
-  rpcs: Rpcs,
+  rpcs: Api,
   _contextFetcher?: () => Context,
-  _policies?: Policies
-): BrpcApi<Context, Policies, Rpcs> {
+  _policies?: Partial<Policies>
+): BrpcApi<Context, Partial<Policies>, Api> {
   const contextFetcher =
     _contextFetcher === undefined ? () => ({} as any) : _contextFetcher;
   const policies = _policies === undefined ? {} : _policies;
@@ -35,7 +32,7 @@ export function createApi<
 
 export function startServer<
   Context extends Object,
-  Policies extends IPolicies,
+  Policies extends IPolicies<Context>,
   T
 >(brpcApi: BrpcApi<Context, Policies, T>, port = 3000) {
   return new Promise<{ stop: () => Promise<void> }>((res) => {
@@ -44,27 +41,34 @@ export function startServer<
     app.use(express.text());
 
     Object.keys(brpcApi.api as Object).forEach((key) => {
-      console.log(`Creating rpc: /${key}`);
-
       app.post(`/${key}`, async (req, res) => {
-        console.log(`Executing rpc: /${key}`);
-
         // Parse request
         const parsedRequest = JSON.parse(req.body);
-        console.log(parsedRequest);
 
-        // TODO: create context
-        const context: IContext = {
-          url: req.url,
-          headers: req.headers,
-          body: req.body,
-          ...brpcApi.contextFetcher(),
-        };
+        // Create context
+        const context: Context = brpcApi.contextFetcher();
 
         // Get rpc
         const rpc = brpcApi.api[
           key as keyof BrpcApi<Context, Policies, T>["api"]
-        ] as Brpc<any, any, IContext, IPolicies>;
+        ] as Brpc<any, any, Context, IPolicies<Context>>;
+
+        // Pre middleware
+        const { policies = [] } = rpc;
+        const baseMiddleware = (brpcApi.policies["base"] ?? []).flat();
+        const matchingMiddleware = [
+          ...baseMiddleware,
+          ...policies
+            .map((policyKey) => brpcApi.policies[policyKey] ?? [])
+            .flat(),
+        ];
+
+        for (const middleware of matchingMiddleware) {
+          await middleware.pre(req, res, context);
+          if (res.headersSent) {
+            return;
+          }
+        }
 
         // Validate input
         rpc.requestSchema.parse(parsedRequest);
@@ -76,12 +80,14 @@ export function startServer<
         rpc.responseSchema.parse(apiHandlerResult);
 
         // Response
-        console.log("Sending response");
-        console.log(apiHandlerResult);
-
         const serializedResponse = JSON.stringify(apiHandlerResult);
 
         res.send(serializedResponse);
+
+        // Post middleware
+        for (const middleware of matchingMiddleware) {
+          await middleware.post(req, res, context);
+        }
       });
     });
 
@@ -99,7 +105,7 @@ export function startServer<
 
 export function generateOpenApiSpec<
   Context extends Object,
-  Policies extends IPolicies,
+  Policies extends IPolicies<Context>,
   T
 >(brpcApi: BrpcApi<Context, Policies, T>) {
   let output: any = {
@@ -117,7 +123,7 @@ export function generateOpenApiSpec<
   Object.keys(brpcApi.api as Object).forEach((key) => {
     const rpc = brpcApi.api[
       key as keyof BrpcApi<Context, Policies, T>["api"]
-    ] as Brpc<any, any, IContext, IPolicies>;
+    ] as Brpc<any, any, Context, IPolicies<Context>>;
     const requestName = `${capitalize(key)}Request`;
     const responseName = `${capitalize(key)}Response`;
 
@@ -161,30 +167,26 @@ export function generateOpenApiSpec<
   return yaml.stringify(output);
 }
 
-interface IMiddleware {
-  // TODO:
+export interface IMiddleware<Context extends Object> {
+  pre: (req: Request, res: Response, ctx: Context) => Promise<void>;
+  post: (req: Request, res: Response, ctx: Context) => Promise<void>;
 }
 
-type IPolicies = Record<string | "default", IMiddleware[]>;
-
-interface IContext {
-  url: string;
-  headers: IncomingHttpHeaders;
-  body: string;
-}
+export type IPolicies<Context extends Object> = {
+  base: IMiddleware<Context>[];
+  [key: string]: IMiddleware<Context>[];
+};
 
 export type BrpcApi<
   Context extends Object,
-  Policies extends IPolicies,
-  T = Record<string, Brpc<any, any, Context & IContext, Policies>>
+  Policies extends Partial<IPolicies<Context>>,
+  T = Record<string, Brpc<any, any, Context, Policies>>
 > = {
   api: T;
   contextFetcher: () => Context;
-  policies: IPolicies;
+  policies: Partial<IPolicies<Context>>;
 };
 
-// TODO: grouping rpcs and applying middleware to groups
-// Maybe just use decorators to annotate?
 interface Brpc<
   ReqSchema extends z.Schema,
   ResSchema extends z.Schema,
