@@ -124,8 +124,8 @@ export function generateOpenApiSpec<
     const rpc = brpcApi.api[
       key as keyof BrpcApi<Context, Policies, T>["api"]
     ] as Brpc<any, any, Context, IPolicies<Context>>;
-    const requestName = `${capitalize(key)}Request`;
-    const responseName = `${capitalize(key)}Response`;
+    const requestDTOName = `${capitalize(key)}Request`;
+    const responseDTOName = `${capitalize(key)}Response`;
 
     output.paths[`/${key}`] = {
       post: {
@@ -134,7 +134,7 @@ export function generateOpenApiSpec<
           content: {
             "text/plain": {
               schema: {
-                $ref: `#/components/schemas/${requestName}`,
+                $ref: `#/components/schemas/${requestDTOName}`,
               },
             },
           },
@@ -145,7 +145,7 @@ export function generateOpenApiSpec<
             content: {
               "text/plain": {
                 schema: {
-                  $ref: `#/components/schemas/${responseName}`,
+                  $ref: `#/components/schemas/${responseDTOName}`,
                 },
               },
             },
@@ -156,11 +156,8 @@ export function generateOpenApiSpec<
 
     output.components.schemas = {
       ...output.components.schemas,
-      ...zodToJsonSchema(rpc.requestSchema, `${requestName}`).definitions,
-    };
-    output.components.schemas = {
-      ...output.components.schemas,
-      ...zodToJsonSchema(rpc.responseSchema, `${responseName}`).definitions,
+      ...zodToJsonSchema(rpc.requestSchema, `${requestDTOName}`).definitions,
+      ...zodToJsonSchema(rpc.responseSchema, `${responseDTOName}`).definitions,
     };
   });
 
