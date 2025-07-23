@@ -43,20 +43,23 @@ export function createChannel<T extends BrpcApi<any, any>>(
 			stringify: (obj: any) => string;
 			parse: (string: string) => any;
 		};
-		canWriteToHydrationState?: boolean;
+		ssr?: boolean;
 		hydrationState?: HydrationState;
 	},
 ): Client<T> {
+	const {
+		serializer = JSON,
+		middleware = [],
+		ssr = false,
+		hydrationState,
+	} = opts;
+	if (ssr === true && !hydrationState) {
+		throw new Error("SSR enabled but no hydration state provided to write to.");
+	}
+
 	return new Proxy(new Object(), {
 		get(_target, name) {
 			return async (req: any) => {
-				const {
-					serializer = JSON,
-					middleware = [],
-					canWriteToHydrationState: writeToHydrationState = false,
-					hydrationState,
-				} = opts;
-
 				// Form request
 				const url = `${host}/${name.toString()}`;
 				const headers = {};
@@ -81,7 +84,7 @@ export function createChannel<T extends BrpcApi<any, any>>(
 					serializedRequest,
 					cacheKey,
 					hydrationState,
-					writeToHydrationState,
+					ssr,
 				);
 
 				// Parse response
@@ -110,7 +113,7 @@ async function makeRequestWithState(
 	request: BodyInit,
 	cacheKey: string,
 	state?: HydrationState,
-	writeToHydrationState?: boolean,
+	ssr?: boolean,
 ) {
 	const cachedData = state?.data[cacheKey];
 
@@ -138,7 +141,7 @@ async function makeRequestWithState(
 		resHeaders[k] = v;
 	});
 
-	if (writeToHydrationState && state) {
+	if (ssr && state) {
 		state.data = {
 			[cacheKey]: {
 				body: raw,

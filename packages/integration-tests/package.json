@@ -8,18 +8,24 @@
     "test": "vitest"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
     "typescript": "^5.0.2",
     "vite": "^4.4.9",
     "vitest": "^0.34.2"
   },
   "dependencies": {
-    "brpc-server": "workspace:*",
+    "@types/express": "^4.17.17",
     "brpc-client": "workspace:*",
     "brpc-react": "workspace:*",
-    "@types/express": "^4.17.17",
+    "brpc-server": "workspace:*",
     "cross-fetch": "^4.0.0",
     "express": "^4.18.2",
     "nanoid": "^4.0.2",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "superjson": "^2.2.2",
     "zod": "^3.22.2"
   }

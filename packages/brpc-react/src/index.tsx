@@ -1,24 +1,15 @@
+"use client";
+
 import type { HydrationState } from "brpc-client/src";
 import type React from "react";
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext } from "react";
 
 type Props = {
 	state: HydrationState;
 	children: React.ReactNode;
 };
 
-type HydrationContextType = {
-	state: HydrationState;
-	setState: (s: HydrationState) => void;
-};
-
-const HydrationContext = createContext<HydrationContextType>({
-	state: {
-		type: "hydration",
-		data: {},
-	},
-	setState() {},
-});
+const HydrationContext = createContext<HydrationState | undefined>(undefined);
 
 export const createHydrationState = () => ({
 	type: "hydration" as const,
@@ -26,13 +17,8 @@ export const createHydrationState = () => ({
 });
 
 export function HydrationProvider(props: Props) {
-	const [value, setValue] = useState<HydrationState>({
-		type: "hydration",
-		data: {},
-	});
-
 	return (
-		<HydrationContext.Provider value={{ state: value, setState: setValue }}>
+		<HydrationContext.Provider value={props.state}>
 			{props.children}
 		</HydrationContext.Provider>
 	);
@@ -45,13 +31,3 @@ export function useHydration() {
 	}
 	return context;
 }
-
-// TODO:
-// 3. we need to pass hydration setter/getter to the trpc client
-// 4. we need to check the cache key (how is it generated? path + args? timeout?)
-// 5. we need to set the cache
-// 6. we need a test
-//    1. create a client on the server, pass the hydration state context into it
-//    2. use the hydration wrapper, pass the same hydration state context into it
-//    3. have a child component make the same request and check for a cache hit
-//       1. easy to test if you just return the current time and the second res matches the first

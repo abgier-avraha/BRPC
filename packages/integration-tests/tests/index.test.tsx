@@ -1,9 +1,16 @@
 import fs from "node:fs";
 import path from "node:path";
+import { PassThrough } from "node:stream";
 import { createChannel } from "brpc-client/src";
-import { createHydrationState } from "brpc-react/src";
+import {
+	createHydrationState,
+	HydrationProvider,
+	useHydration,
+} from "brpc-react/src";
 import { generateOpenApiSpec, startServer } from "brpc-server/src";
 import fetch from "cross-fetch";
+import { Suspense, use } from "react";
+import { renderToPipeableStream } from "react-dom/server.node";
 import superjson from "superjson";
 import { expect, test } from "vitest";
 import type { ApiType } from "./server";
@@ -90,25 +97,99 @@ test("Execute RPC from Client Channel with Hydration Cache", async () => {
 		middleware: [],
 		serializer: superjson,
 		hydrationState: state,
-		canWriteToHydrationState: true,
+		ssr: true,
 	});
 
 	const frontendClient = createChannel<ApiType>("http://localhost:3003", {
 		middleware: [],
 		serializer: superjson,
 		hydrationState: state,
-		canWriteToHydrationState: false,
+		ssr: false,
 	});
 
 	// Act
-	const res1 = await serverClient.currentTime({});
-	const res2 = await frontendClient.currentTime({});
+	const serverRes = await serverClient.currentTime({});
+	const frontendRes = await frontendClient.currentTime({});
 
 	// Assert
-	expect(res2).toEqual({
-		date: res1.date,
+	expect(frontendRes).toEqual({
+		date: serverRes.date,
 	});
 
 	// Cleanup
 	server.stop();
 });
+
+test("Execute RPC from Client Channel with Hydration Context", async () => {
+	// Arrange
+	const state = createHydrationState();
+	const server = await startServer(testApi, 3004, superjson);
+	const serverClient = createChannel<ApiType>("http://localhost:3004", {
+		middleware: [],
+		serializer: superjson,
+		hydrationState: state,
+		ssr: true,
+	});
+
+	// Act
+
+	// Prefetch
+	const expected = await serverClient.currentTime({});
+
+	// Suspended component
+	const SuspendedComponent = () => {
+		const frontendClient = createChannel<ApiType>("http://localhost:3004", {
+			middleware: [],
+			serializer: superjson,
+			hydrationState: useHydration(),
+		});
+
+		const data = use(frontendClient.currentTime({}));
+		return <div>{data.date.toISOString()}</div>;
+	};
+
+	// SSR
+	const content = await renderToHtmlStream(
+		<HydrationProvider state={state}>
+			<Suspense fallback={null}>
+				<SuspendedComponent />
+			</Suspense>
+		</HydrationProvider>,
+	);
+
+	// Assert
+	expect(content).toEqual(
+		`<!--$--><div>${expected.date.toISOString()}</div><!--/$-->`,
+	);
+
+	// Cleanup
+	server.stop();
+});
+
+export function renderToHtmlStream(jsx: React.ReactElement): Promise<string> {
+	return new Promise((resolve, reject) => {
+		const stream = new PassThrough();
+		let html = "";
+
+		const { pipe } = renderToPipeableStream(jsx, {
+			onAllReady() {
+				pipe(stream);
+			},
+			onError(err) {
+				reject(err);
+			},
+		});
+
+		stream.on("data", (chunk) => {
+			html += chunk.toString();
+		});
+
+		stream.on("end", () => {
+			resolve(html);
+		});
+
+		stream.on("error", (err) => {
+			reject(err);
+		});
+	});
+}
