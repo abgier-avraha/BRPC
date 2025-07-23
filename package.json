@@ -1,0 +1,12 @@
+{
+  "name": "@brpc",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "pnpm --filter integration-tests run test"
+  },
+  "keywords": [],
+  "author": "",
+  "packageManager": "pnpm@10.13.1"
+}

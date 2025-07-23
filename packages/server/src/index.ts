@@ -3,6 +3,11 @@ import yaml from "yaml";
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
+export type Serializer =  {
+    stringify: (obj: any) => string,
+    parse: (string: string) => any,
+  }
+
 export function createApi<
   Context extends Object,
   Policies extends IPolicies<Context>,
@@ -34,7 +39,7 @@ export function startServer<
   Context extends Object,
   Policies extends IPolicies<Context>,
   T
->(brpcApi: BrpcApi<Context, Policies, T>, port = 3000) {
+>(brpcApi: BrpcApi<Context, Policies, T>, port = 3000, serializer: Serializer = JSON) {
   return new Promise<{ stop: () => Promise<void> }>((res) => {
     console.log("Initializing server...");
     const app = express();
@@ -43,7 +48,7 @@ export function startServer<
     Object.keys(brpcApi.api as Object).forEach((key) => {
       app.post(`/${key}`, async (req, res) => {
         // Parse request
-        const parsedRequest = JSON.parse(req.body);
+        const parsedRequest = serializer.parse(req.body);
 
         // Create context
         const context: Context = brpcApi.contextFetcher();
@@ -51,7 +56,7 @@ export function startServer<
         // Get rpc
         const rpc = brpcApi.api[
           key as keyof BrpcApi<Context, Policies, T>["api"]
-        ] as Brpc<any, any, Context, IPolicies<Context>>;
+        ] as Brpc<z.Schema, z.Schema, Context, IPolicies<Context>>;
 
         // Pre middleware
         const { policies = [] } = rpc;
@@ -71,16 +76,17 @@ export function startServer<
         }
 
         // Validate input
-        rpc.requestSchema.parse(parsedRequest);
+        z.object({}).parseAsync
+        await rpc.requestSchema.parseAsync(parsedRequest);
 
         // Handle
         const apiHandlerResult = await rpc.handler(parsedRequest, context);
 
         // Validate output
-        rpc.responseSchema.parse(apiHandlerResult);
+        await rpc.responseSchema.parseAsync(apiHandlerResult);
 
         // Response
-        const serializedResponse = JSON.stringify(apiHandlerResult);
+        const serializedResponse = serializer.stringify(apiHandlerResult);
 
         res.send(serializedResponse);
 
@@ -92,7 +98,7 @@ export function startServer<
     });
 
     const server = app.listen(port, () => {
-      console.log("Started 🅱️ rpc server!");
+      console.log("Started 🅱️rpc server!");
       res({
         stop: () =>
           new Promise<void>((res) => {

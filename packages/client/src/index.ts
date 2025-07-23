@@ -25,7 +25,11 @@ interface IChannelMiddleware {
 
 export function createChannel<T extends BrpcApi<any, any>>(
   host: string,
-  middleware?: IChannelMiddleware[]
+  middleware?: IChannelMiddleware[],
+  serializer: {
+    stringify: (obj: any) => string,
+    parse: (string: string) => any,
+  } = JSON
 ): Client<T> {
   return new Proxy(new Object(), {
     get(_target, name) {
@@ -34,7 +38,7 @@ export function createChannel<T extends BrpcApi<any, any>>(
           // Form request
           const url = `${host}/${name.toString()}`;
           let headers = {};
-          const serializedRequest = JSON.stringify(req);
+          const serializedRequest = serializer.stringify(req);
 
           // Execute pre middleware
           if (middleware !== undefined) {
@@ -59,7 +63,7 @@ export function createChannel<T extends BrpcApi<any, any>>(
 
           // Parse response
           const rawResponse = await response.text();
-          const parsedResponse = JSON.parse(rawResponse);
+          const parsedResponse = serializer.parse(rawResponse);
 
           const responseHeaders: Record<string, string> = {};
           response.headers.forEach((v, k) => {

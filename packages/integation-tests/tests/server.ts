@@ -26,7 +26,7 @@ type ServerContext = {};
 
 const EchoRequestSchema = z.object({
   phrase: z.string(),
-  date: z.string().datetime(),
+  date: z.date(),
   nested: z.object({
     arrayOfNumbers: z.array(z.number()),
   }),
@@ -34,7 +34,7 @@ const EchoRequestSchema = z.object({
 
 const EchoResponseSchema = z.object({
   phrase: z.string(),
-  date: z.string().datetime(),
+  date: z.date(),
   nested: z.object({
     arrayOfNumbers: z.array(z.number()),
   }),
