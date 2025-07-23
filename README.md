@@ -1,6 +1,6 @@
 # 🅱️RPC
 
-An experiment using Typescript's `import type` feature and ES proxies to achieve something like TRPC. Uses standard JSON serialization for Open API spec compatibility.
+An experiment using Typescript's `import type` feature and ES proxies to achieve something like TRPC. Support Open API spec compatibility if you use the default JSON serializer.
 
 ## Example
 
@@ -16,7 +16,7 @@ type ServerContext = {};
 
 const EchoRequestSchema = z.object({
   phrase: z.string(),
-  date: z.string().datetime(),
+  date: z.date(),
   nested: z.object({
     arrayOfNumbers: z.array(z.number()),
   }),
@@ -24,7 +24,7 @@ const EchoRequestSchema = z.object({
 
 const EchoResponseSchema = z.object({
   phrase: z.string(),
-  date: z.string().datetime(),
+  date: z.date(),
   nested: z.object({
     arrayOfNumbers: z.array(z.number()),
   }),
@@ -51,12 +51,13 @@ export const api = createApi(
     base: [
       // Optional middleware
     ],
-  }
+  },
 );
 
-await startServer(api);
+await startServer(api, 3000, superjson);
 
 // Optional OpenAPI spec generation via https://www.npmjs.com/package/zod-to-json-schema
+// Does not work with superjson or dates
 fs.writeFileSync(
   path.join(__dirname, "api.spec.yml"),
   generateOpenApiSpec(api)
@@ -72,7 +73,7 @@ import { createChannel } from "client/index";
 import type { ApiType } from "../../server";
 
 // Create a communication channel with optional middleware
-const client = createChannel<ApiType>("http://localhost:3000", []);
+const client = createChannel<ApiType>("http://localhost:3000", [], superjson);
 const res = await client.echo({ phrase: "Hello world!" });
 ```
 

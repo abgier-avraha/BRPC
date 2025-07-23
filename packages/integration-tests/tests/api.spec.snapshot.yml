@@ -18,6 +18,21 @@ paths:
             text/plain:
               schema:
                 $ref: "#/components/schemas/EchoResponse"
+  /currentTime:
+    post:
+      operationId: currentTime
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              $ref: "#/components/schemas/CurrentTimeRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            text/plain:
+              schema:
+                $ref: "#/components/schemas/CurrentTimeResponse"
 components:
   schemas:
     EchoRequest:
@@ -65,4 +80,17 @@ components:
         - phrase
         - date
         - nested
+      additionalProperties: false
+    CurrentTimeRequest:
+      type: object
+      properties: {}
+      additionalProperties: false
+    CurrentTimeResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date-time
+      required:
+        - date
       additionalProperties: false
