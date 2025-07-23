@@ -33,56 +33,55 @@ export function createChannel<T extends BrpcApi<any, any>>(
 ): Client<T> {
 	return new Proxy(new Object(), {
 		get(_target, name) {
-			return (req: any) =>
-				new Promise(async (res) => {
-					// Form request
-					const url = `${host}/${name.toString()}`;
-					let headers = {};
-					const serializedRequest = serializer.stringify(req);
+			return async (req: any) => {
+				// Form request
+				const url = `${host}/${name.toString()}`;
+				const headers = {};
+				const serializedRequest = serializer.stringify(req);
 
-					// Execute pre middleware
-					if (middleware !== undefined) {
-						for (const middlewareItem of middleware) {
-							await middlewareItem.pre({
-								body: serializedRequest,
-								headers: headers,
-								url: url,
-							});
-						}
+				// Execute pre middleware
+				if (middleware !== undefined) {
+					for (const middlewareItem of middleware) {
+						await middlewareItem.pre({
+							body: serializedRequest,
+							headers: headers,
+							url: url,
+						});
 					}
+				}
 
-					// Fetch response
-					const response = await fetch(url, {
-						method: "post",
-						headers: {
-							...headers,
-							"content-type": "text/plain",
-						},
-						body: serializedRequest,
-					});
-
-					// Parse response
-					const rawResponse = await response.text();
-					const parsedResponse = serializer.parse(rawResponse);
-
-					const responseHeaders: Record<string, string> = {};
-					response.headers.forEach((v, k) => {
-						responseHeaders[k] = v;
-					});
-
-					res(parsedResponse);
-
-					// Execute post middleware
-					if (middleware !== undefined) {
-						for (const middlewareItem of middleware) {
-							await middlewareItem.post({
-								body: rawResponse,
-								headers: responseHeaders,
-								url: url,
-							});
-						}
-					}
+				// Fetch response
+				const response = await fetch(url, {
+					method: "post",
+					headers: {
+						...headers,
+						"content-type": "text/plain",
+					},
+					body: serializedRequest,
 				});
+
+				// Parse response
+				const rawResponse = await response.text();
+				const parsedResponse = serializer.parse(rawResponse);
+
+				const responseHeaders: Record<string, string> = {};
+				response.headers.forEach((v, k) => {
+					responseHeaders[k] = v;
+				});
+
+				// Execute post middleware
+				if (middleware !== undefined) {
+					for (const middlewareItem of middleware) {
+						await middlewareItem.post({
+							body: rawResponse,
+							headers: responseHeaders,
+							url: url,
+						});
+					}
+				}
+
+				return parsedResponse;
+			};
 		},
-	}) as any;
+	}) as Client<T>;
 }
