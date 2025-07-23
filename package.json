@@ -4,9 +4,13 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "pnpm --filter integration-tests run test"
+    "test": "pnpm --filter integration-tests run test",
+    "format": "npx @biomejs/biome format --write ./packages/react/src && npx @biomejs/biome format --write ./packages/server/src && npx @biomejs/biome format --write ./packages/client/src && npx @biomejs/biome format --write ./packages/integration-tests/tests"
   },
   "keywords": [],
   "author": "",
-  "packageManager": "pnpm@10.13.1"
+  "packageManager": "pnpm@10.13.1",
+  "devDependencies": {
+    "@biomejs/biome": "2.1.2"
+  }
 }
