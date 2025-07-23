@@ -1,5 +1,5 @@
 {
-  "name": "react",
+  "name": "brpc-react",
   "version": "1.0.0",
   "main": "src/index.tsx",
   "peerDependencies": {
@@ -9,6 +9,9 @@
   "scripts": {
     "build": "tsc",
     "test": "jest"
+  },
+  "dependencies": {
+    "brpc-client": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.8.3",

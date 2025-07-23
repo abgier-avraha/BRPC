@@ -1,11 +1,11 @@
 {
-  "name": "@brpc",
+  "name": "brpc",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "pnpm --filter integration-tests run test",
-    "format": "npx @biomejs/biome format --write ./packages/react/src && npx @biomejs/biome format --write ./packages/server/src && npx @biomejs/biome format --write ./packages/client/src && npx @biomejs/biome format --write ./packages/integration-tests/tests"
+    "format": "npx @biomejs/biome check --write ./packages/brpc-react/src && npx @biomejs/biome check --write ./packages/brpc-server/src && npx @biomejs/biome check --write ./packages/brpc-client/src && npx @biomejs/biome check --write ./packages/integration-tests/tests"
   },
   "keywords": [],
   "author": "",

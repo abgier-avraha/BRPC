@@ -11,19 +11,7 @@ export type Serializer = {
 export function createApi<
 	Context extends Object,
 	Policies extends IPolicies<Context>,
-	Api extends Record<
-		string,
-		Brpc<
-			Api[keyof Api]["requestSchema"] extends z.Schema
-				? Api[keyof Api]["requestSchema"]
-				: never,
-			Api[keyof Api]["responseSchema"] extends z.Schema
-				? Api[keyof Api]["responseSchema"]
-				: never,
-			Context,
-			Policies
-		>
-	>,
+	Api extends Record<string, Brpc<any, any, Context, Policies>>,
 >(
 	rpcs: Api,
 	_contextFetcher?: () => Context,
@@ -64,12 +52,10 @@ export function startServer<
 
 				// Pre middleware
 				const { policies = [] } = rpc;
-				const baseMiddleware = (brpcApi.policies["base"] ?? []).flat();
+				const baseMiddleware = (brpcApi.policies["base" as const] ?? []).flat();
 				const matchingMiddleware = [
 					...baseMiddleware,
-					...policies
-						.map((policyKey) => brpcApi.policies[policyKey] ?? [])
-						.flat(),
+					...policies.flatMap((policyKey) => brpcApi.policies[policyKey] ?? []),
 				];
 
 				for (const middleware of matchingMiddleware) {
@@ -118,7 +104,7 @@ export function generateOpenApiSpec<
 	Policies extends IPolicies<Context>,
 	T,
 >(brpcApi: BrpcApi<Context, Policies, T>) {
-	let output: any = {
+	const output: any = {
 		openapi: "3.1.0",
 		info: {
 			title: "BRPC OpenAPI 3.1",

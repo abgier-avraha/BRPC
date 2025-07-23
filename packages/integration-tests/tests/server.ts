@@ -1,7 +1,7 @@
-import { z } from "zod";
-import { IMiddleware, createApi } from "../../server/src/index";
 import type { Request, Response } from "express";
 import * as nanoid from "nanoid";
+import { z } from "zod";
+import { createApi, type IMiddleware } from "../../brpc-server/src/index";
 
 export type ApiType = typeof testApi;
 
@@ -40,6 +40,12 @@ const EchoResponseSchema = z.object({
 	}),
 });
 
+const CurrentTimeRequestSchema = z.object({});
+
+const CurrentTimeResponseSchema = z.object({
+	date: z.date(),
+});
+
 export const testApi = createApi(
 	{
 		echo: {
@@ -51,6 +57,16 @@ export const testApi = createApi(
 			},
 			requestSchema: EchoRequestSchema,
 			responseSchema: EchoResponseSchema,
+		},
+		currentTime: {
+			handler: async (
+				_req: z.infer<typeof CurrentTimeRequestSchema>,
+				_ctx: ServerContext,
+			) => {
+				return { date: new Date() };
+			},
+			requestSchema: CurrentTimeRequestSchema,
+			responseSchema: CurrentTimeResponseSchema,
 		},
 	},
 	() => ({}),

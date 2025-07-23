@@ -1,9 +1,6 @@
-import React, { createContext, useState } from "react";
-
-export type HydrationState = {
-	type: "hydration";
-	data: any;
-};
+import type { HydrationState } from "brpc-client/src";
+import type React from "react";
+import { createContext, useContext, useState } from "react";
 
 type Props = {
 	state: HydrationState;
@@ -20,7 +17,12 @@ const HydrationContext = createContext<HydrationContextType>({
 		type: "hydration",
 		data: {},
 	},
-	setState(s) {},
+	setState() {},
+});
+
+export const createHydrationState = () => ({
+	type: "hydration" as const,
+	data: {},
 });
 
 export function HydrationProvider(props: Props) {
@@ -36,9 +38,15 @@ export function HydrationProvider(props: Props) {
 	);
 }
 
+export function useHydration() {
+	const context = useContext(HydrationContext);
+	if (!context) {
+		throw new Error("useHydration must be used within a HydrationProvider");
+	}
+	return context;
+}
+
 // TODO:
-// 1. we have a provider now
-// 2. we need to hook into it
 // 3. we need to pass hydration setter/getter to the trpc client
 // 4. we need to check the cache key (how is it generated? path + args? timeout?)
 // 5. we need to set the cache

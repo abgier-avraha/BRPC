@@ -1,18 +1,21 @@
+import fs from "node:fs";
+import path from "node:path";
+import { createChannel } from "brpc-client/src";
+import { createHydrationState } from "brpc-react/src";
+import { generateOpenApiSpec, startServer } from "brpc-server/src";
+import fetch from "cross-fetch";
+import superjson from "superjson";
 import { expect, test } from "vitest";
 import type { ApiType } from "./server";
 import { testApi } from "./server";
-import { generateOpenApiSpec, startServer } from "../../server/src";
-import { createChannel } from "../../client/src";
-import fetch from "cross-fetch";
-import superjson from "superjson";
-
-const fs = require("fs");
-const path = require("path");
 
 test("Execute RPC from Client Channel", async () => {
 	// Arrange
 	const server = await startServer(testApi, 3000, superjson);
-	const client = createChannel<ApiType>("http://localhost:3000", [], superjson);
+	const client = createChannel<ApiType>("http://localhost:3000", {
+		middleware: [],
+		serializer: superjson,
+	});
 
 	// Act
 	const res = await client.echo({
@@ -77,4 +80,35 @@ test("Generate OpenAPI Spec", async () => {
 	expect(generateOpenApiSpec(testApi)).toBe(
 		fs.readFileSync(path.join(__dirname, "api.spec.snapshot.yml"), "utf8"),
 	);
+});
+
+test("Execute RPC from Client Channel with Hydration Cache", async () => {
+	// Arrange
+	const state = createHydrationState();
+	const server = await startServer(testApi, 3003, superjson);
+	const serverClient = createChannel<ApiType>("http://localhost:3003", {
+		middleware: [],
+		serializer: superjson,
+		hydrationState: state,
+		canWriteToHydrationState: true,
+	});
+
+	const frontendClient = createChannel<ApiType>("http://localhost:3003", {
+		middleware: [],
+		serializer: superjson,
+		hydrationState: state,
+		canWriteToHydrationState: false,
+	});
+
+	// Act
+	const res1 = await serverClient.currentTime({});
+	const res2 = await frontendClient.currentTime({});
+
+	// Assert
+	expect(res2).toEqual({
+		date: res1.date,
+	});
+
+	// Cleanup
+	server.stop();
 });
