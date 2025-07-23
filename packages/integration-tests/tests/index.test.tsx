@@ -2,11 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { PassThrough } from "node:stream";
 import { createChannel } from "brpc-client/src";
-import {
-	createHydrationState,
-	HydrationProvider,
-	useHydration,
-} from "brpc-react/src";
+import { createHydrationState, HydrationProvider } from "brpc-react/src";
 import { generateOpenApiSpec, startServer } from "brpc-server/src";
 import fetch from "cross-fetch";
 import { Suspense, use } from "react";
@@ -130,26 +126,25 @@ test("Execute RPC from Client Channel with Hydration Context", async () => {
 		hydrationState: state,
 		ssr: true,
 	});
+	const frontendClient = createChannel<ApiType>("http://localhost:3004", {
+		middleware: [],
+		serializer: superjson,
+		hydrationState: state,
+	});
 
 	// Act
 
 	// Prefetch
 	const expected = await serverClient.currentTime({});
 
-	// Suspended component
+	// Suspense component
 	const SuspendedComponent = () => {
-		const frontendClient = createChannel<ApiType>("http://localhost:3004", {
-			middleware: [],
-			serializer: superjson,
-			hydrationState: useHydration(),
-		});
-
 		const data = use(frontendClient.currentTime({}));
 		return <div>{data.date.toISOString()}</div>;
 	};
 
-	// SSR
-	const content = await renderToHtmlStream(
+	// Parent component
+	const content = await renderToHtmlString(
 		<HydrationProvider state={state}>
 			<Suspense fallback={null}>
 				<SuspendedComponent />
@@ -166,7 +161,7 @@ test("Execute RPC from Client Channel with Hydration Context", async () => {
 	server.stop();
 });
 
-export function renderToHtmlStream(jsx: React.ReactElement): Promise<string> {
+export function renderToHtmlString(jsx: React.ReactElement): Promise<string> {
 	return new Promise((resolve, reject) => {
 		const stream = new PassThrough();
 		let html = "";
