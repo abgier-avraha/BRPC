@@ -73,7 +73,10 @@ import { createChannel } from "client/index";
 import type { ApiType } from "../../server";
 
 // Create a communication channel with optional middleware
-const client = createChannel<ApiType>("http://localhost:3000", [], superjson);
+const client = createChannel<ApiType>("http://localhost:3000", {
+  middleware: [],
+  serializer: superjson,
+});
 const res = await client.echo({ phrase: "Hello world!" });
 ```
 
