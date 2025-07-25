@@ -18,7 +18,7 @@ export interface ChannelResponse {
 	url: string;
 }
 
-export type HydrationState = {
+export type HydrationSnapshot = {
 	type: "hydration";
 	data: Record<
 		string,
@@ -43,17 +43,18 @@ export function createChannel<T extends BrpcApi<any, any>>(
 			stringify: (obj: any) => string;
 			parse: (string: string) => any;
 		};
-		ssr?: boolean;
-		hydrationState?: HydrationState;
+		// Use on the server to enable writing to the hydration snapshot
+		dehydrate?: boolean;
+		hydrationSnapshot?: HydrationSnapshot;
 	},
 ): BrpcClient<T> {
 	const {
 		serializer = JSON,
 		middleware = [],
-		ssr = false,
-		hydrationState,
+		dehydrate: ssr = false,
+		hydrationSnapshot: hydrationSnapshot,
 	} = opts;
-	if (ssr === true && !hydrationState) {
+	if (ssr === true && !hydrationSnapshot) {
 		throw new Error("SSR enabled but no hydration state provided to write to.");
 	}
 
@@ -68,7 +69,7 @@ export function createChannel<T extends BrpcApi<any, any>>(
 					const cacheKey = `URL:${url}-REQ:${serializedRequest}`;
 
 					// Check cache
-					const cachedData = hydrationState?.data[cacheKey];
+					const cachedData = hydrationSnapshot?.data[cacheKey];
 					if (cachedData !== undefined) {
 						// Return synchronously
 						const parsed = serializer.parse(cachedData.body);
@@ -88,7 +89,7 @@ export function createChannel<T extends BrpcApi<any, any>>(
 							headers,
 							serializedRequest,
 							cacheKey,
-							hydrationState,
+							hydrationSnapshot,
 							ssr,
 						);
 
@@ -150,7 +151,7 @@ async function makeRequestWithState(
 	reqHeaders: {},
 	request: BodyInit,
 	cacheKey: string,
-	state?: HydrationState,
+	state?: HydrationSnapshot,
 	ssr?: boolean,
 ) {
 	const response = await fetch(url, {

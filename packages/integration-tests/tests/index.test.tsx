@@ -89,15 +89,15 @@ test("Execute RPC from Client Channel with Hydration Cache", async () => {
 	const serverClient = createChannel<ApiType>("http://localhost:3003", {
 		middleware: [],
 		serializer: superjson,
-		hydrationState: state,
-		ssr: true,
+		hydrationSnapshot: state,
+		dehydrate: true,
 	});
 
 	const frontendClient = createChannel<ApiType>("http://localhost:3003", {
 		middleware: [],
 		serializer: superjson,
-		hydrationState: state,
-		ssr: false,
+		hydrationSnapshot: state,
+		dehydrate: false,
 	});
 
 	// Act

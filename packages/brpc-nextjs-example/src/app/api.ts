@@ -9,8 +9,8 @@ export function createApi() {
 	const api = createChannel<ApiType>("http://localhost:3001", {
 		middleware: [],
 		serializer: superjson,
-		hydrationState: hydration,
-		ssr: true,
+		hydrationSnapshot: hydration,
+		dehydrate: true,
 	});
 
 	return { api, hydration };
