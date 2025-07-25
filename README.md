@@ -90,7 +90,7 @@ You can also codegen a client for a non-TypeScript application from the open API
 
 
 ```tsx
-// Setup your frontend client
+// Setup your frontend client provider
 export function Providers(props: {
 	children: React.ReactNode;
 	hydration: HydrationSnapshot;
@@ -109,10 +109,17 @@ export function Providers(props: {
 
 ```tsx
 export default async function Page() {
-  // Setup the backend client
-	const { api, hydrationSnapshot } = createApi();
+	// Setup the backend client
+	const hydrationSnapshot = createHydrationState();
 
-  // Make your prefetch requests
+	const api = createChannel<ApiType>("http://localhost:3001", {
+		middleware: [],
+		serializer: superjson,
+		hydrationSnapshot: hydrationSnapshot,
+		dehydrate: true,
+	});
+
+	// Make your prefetch requests
 	await api.echo({
 		phrase: "test",
 		date: new Date("1995-12-17T03:24:00"),
@@ -123,7 +130,7 @@ export default async function Page() {
 
 	return (
 		<div>
-      {/* Pass the hydration snapshot to the frontend client */}
+			{/* Pass the hydration snapshot to the frontend client */}
 			<Providers hydrationSnapshot={hydrationSnapshot}>
 				<Suspense fallback={<div>Loading...</div>}>
 					<SuspendedComponent />
@@ -139,7 +146,7 @@ export default async function Page() {
 export const SuspendedComponent = () => {
 	const api = useBrpc<ApiType>();
 
-  // The rpc and args must match between the serve and client for SSR to succeed
+	// The rpc and args must match between the serve and client for SSR to succeed
 	const data = suspend("echo-random", () =>
 		api.echo({
 			phrase: "test",
