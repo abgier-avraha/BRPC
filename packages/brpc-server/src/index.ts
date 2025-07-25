@@ -1,3 +1,4 @@
+import cors from "cors";
 import express, { type Request, type Response } from "express";
 import yaml from "yaml";
 import { z } from "zod";
@@ -35,6 +36,8 @@ export function startServer<
 	return new Promise<{ stop: () => Promise<void> }>((res) => {
 		console.log("Initializing server...");
 		const app = express();
+
+		app.use(cors());
 		app.use(express.text());
 
 		Object.keys(brpcApi.api as Object).forEach((key) => {

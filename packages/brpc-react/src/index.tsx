@@ -1,26 +1,28 @@
-import type { HydrationState } from "brpc-client/src";
+import type { BrpcClient } from "brpc-client/src";
+
 import type React from "react";
 import { createContext, useContext } from "react";
+import type { BrpcApi } from "brpc-server/src";
 
-type Props = {
-	state: HydrationState;
+type BrpcProviderProps = {
+	api: BrpcClient<any>;
 	children: React.ReactNode;
 };
 
-const HydrationContext = createContext<HydrationState | undefined>(undefined);
+const BrpcContext = createContext<BrpcClient<any> | undefined>(undefined);
 
-export function HydrationProvider(props: Props) {
+export function BrpcProvider(props: BrpcProviderProps) {
 	return (
-		<HydrationContext.Provider value={props.state}>
+		<BrpcContext.Provider value={props.api}>
 			{props.children}
-		</HydrationContext.Provider>
+		</BrpcContext.Provider>
 	);
 }
 
-export function useHydration() {
-	const context = useContext(HydrationContext);
+export function useBrpc<T extends BrpcApi<any, any>>(): BrpcClient<T> {
+	const context = useContext(BrpcContext);
 	if (!context) {
-		throw new Error("useHydration must be used within a HydrationProvider");
+		throw new Error("useBrpc must be used within a BrpcProvider");
 	}
 	return context;
 }

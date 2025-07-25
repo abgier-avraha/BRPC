@@ -1,13 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
-import { PassThrough } from "node:stream";
 import { createChannel } from "brpc-client/src";
-import { HydrationProvider } from "brpc-react/src";
 import { createHydrationState } from "brpc-react/src/hydration-state";
 import { generateOpenApiSpec, startServer } from "brpc-server/src";
 import fetch from "cross-fetch";
-import { Suspense, use } from "react";
-import { renderToPipeableStream } from "react-dom/server.node";
 import superjson from "superjson";
 import { expect, test } from "vitest";
 import type { ApiType } from "./server";
@@ -116,76 +112,3 @@ test("Execute RPC from Client Channel with Hydration Cache", async () => {
 	// Cleanup
 	server.stop();
 });
-
-test("Execute RPC from Client Channel with Hydration Context", async () => {
-	// Arrange
-	const state = createHydrationState();
-	const server = await startServer(testApi, 3004, superjson);
-	const serverClient = createChannel<ApiType>("http://localhost:3004", {
-		middleware: [],
-		serializer: superjson,
-		hydrationState: state,
-		ssr: true,
-	});
-	const frontendClient = createChannel<ApiType>("http://localhost:3004", {
-		middleware: [],
-		serializer: superjson,
-		hydrationState: state,
-	});
-
-	// Act
-
-	// Prefetch
-	const expected = await serverClient.currentTime({});
-
-	// Suspense component
-	const SuspendedComponent = () => {
-		const data = use(frontendClient.currentTime({}));
-		return <div>{data.date.toISOString()}</div>;
-	};
-
-	// Parent component
-	const content = await renderToHtmlString(
-		<HydrationProvider state={state}>
-			<Suspense fallback={null}>
-				<SuspendedComponent />
-			</Suspense>
-		</HydrationProvider>,
-	);
-
-	// Assert
-	expect(content).toEqual(
-		`<!--$--><div>${expected.date.toISOString()}</div><!--/$-->`,
-	);
-
-	// Cleanup
-	server.stop();
-});
-
-export function renderToHtmlString(jsx: React.ReactElement): Promise<string> {
-	return new Promise((resolve, reject) => {
-		const stream = new PassThrough();
-		let html = "";
-
-		const { pipe } = renderToPipeableStream(jsx, {
-			onAllReady() {
-				pipe(stream);
-			},
-			onError(err) {
-				reject(err);
-			},
-		});
-
-		stream.on("data", (chunk) => {
-			html += chunk.toString();
-		});
-
-		stream.on("end", () => {
-			resolve(html);
-		});
-
-		stream.on("error", (err) => {
-			reject(err);
-		});
-	});
-}

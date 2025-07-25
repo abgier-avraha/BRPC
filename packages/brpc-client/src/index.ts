@@ -1,7 +1,7 @@
 import type { BrpcApi } from "brpc-server/src";
 import fetch from "cross-fetch";
 
-type Client<T extends BrpcApi<any, any>> = {
+export type BrpcClient<T extends BrpcApi<any, any>> = {
 	[K in keyof T["api"]]: (
 		req: Parameters<T["api"][K]["handler"]>[0],
 	) => ReturnType<T["api"][K]["handler"]>;
@@ -46,7 +46,7 @@ export function createChannel<T extends BrpcApi<any, any>>(
 		ssr?: boolean;
 		hydrationState?: HydrationState;
 	},
-): Client<T> {
+): BrpcClient<T> {
 	const {
 		serializer = JSON,
 		middleware = [],
@@ -58,54 +58,57 @@ export function createChannel<T extends BrpcApi<any, any>>(
 	}
 
 	return new Proxy(new Object(), {
-		get(_target, name) {
-			return (req: any) => {
-				const url = `${host}/${String(name)}`;
-				const headers = {};
-				const serializedRequest = serializer.stringify(req);
-				const cacheKey = `URL:${url}-REQ:${serializedRequest}`;
+		get(target: Record<string, (req: any) => any>, name: string) {
+			// Cache method functions on the proxy target
+			if (!target[name]) {
+				target[name] = (req: any) => {
+					const url = `${host}/${String(name)}`;
+					const headers = {};
+					const serializedRequest = serializer.stringify(req);
+					const cacheKey = `URL:${url}-REQ:${serializedRequest}`;
 
-				// Check cache
-				const cachedData = hydrationState?.data[cacheKey];
-				if (cachedData !== undefined) {
-					const parsed = serializer.parse(cachedData.body);
-					return parsed; // ✅ Return synchronously
-				}
-
-				// Return a Promise if no cached data
-				return (async () => {
-					// Execute pre middleware
-					if (middleware) {
-						for (const m of middleware) {
-							await m.pre({ body: serializedRequest, headers, url });
-						}
+					// Check cache
+					const cachedData = hydrationState?.data[cacheKey];
+					if (cachedData !== undefined) {
+						const parsed = serializer.parse(cachedData.body);
+						return parsed; // ✅ Return synchronously
 					}
 
-					const response = await makeRequestWithState(
-						url,
-						headers,
-						serializedRequest,
-						cacheKey,
-						hydrationState,
-						ssr,
-					);
-
-					// Execute post middleware
-					if (middleware) {
-						for (const m of middleware) {
-							await m.post({
-								body: response.raw,
-								headers: response.headers,
-								url,
-							});
+					// Return a Promise if no cached data
+					return (async () => {
+						if (middleware) {
+							for (const m of middleware) {
+								await m.pre({ body: serializedRequest, headers, url });
+							}
 						}
-					}
 
-					return serializer.parse(response.raw);
-				})();
-			};
+						const response = await makeRequestWithState(
+							url,
+							headers,
+							serializedRequest,
+							cacheKey,
+							hydrationState,
+							ssr,
+						);
+
+						if (middleware) {
+							for (const m of middleware) {
+								await m.post({
+									body: response.raw,
+									headers: response.headers,
+									url,
+								});
+							}
+						}
+
+						return serializer.parse(response.raw);
+					})();
+				};
+			}
+
+			return target[name];
 		},
-	}) as Client<T>;
+	}) as BrpcClient<T>;
 }
 
 async function makeRequestWithState(
