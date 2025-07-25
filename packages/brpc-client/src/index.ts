@@ -59,49 +59,50 @@ export function createChannel<T extends BrpcApi<any, any>>(
 
 	return new Proxy(new Object(), {
 		get(_target, name) {
-			return async (req: any) => {
-				// Form request
-				const url = `${host}/${name.toString()}`;
+			return (req: any) => {
+				const url = `${host}/${String(name)}`;
 				const headers = {};
 				const serializedRequest = serializer.stringify(req);
 				const cacheKey = `URL:${url}-REQ:${serializedRequest}`;
 
-				// Execute pre middleware
-				if (middleware !== undefined) {
-					for (const middlewareItem of middleware) {
-						await middlewareItem.pre({
-							body: serializedRequest,
-							headers: headers,
-							url: url,
-						});
-					}
+				// Check cache
+				const cachedData = hydrationState?.data[cacheKey];
+				if (cachedData !== undefined) {
+					const parsed = serializer.parse(cachedData.body);
+					return parsed; // ✅ Return synchronously
 				}
 
-				// Fetch response
-				const response = await makeRequestWithState(
-					url,
-					headers,
-					serializedRequest,
-					cacheKey,
-					hydrationState,
-					ssr,
-				);
-
-				// Parse response
-				const parsedResponse = serializer.parse(response.raw);
-
-				// Execute post middleware
-				if (middleware !== undefined) {
-					for (const middlewareItem of middleware) {
-						await middlewareItem.post({
-							body: response.raw,
-							headers: response.headers,
-							url: url,
-						});
+				// Return a Promise if no cached data
+				return (async () => {
+					// Execute pre middleware
+					if (middleware) {
+						for (const m of middleware) {
+							await m.pre({ body: serializedRequest, headers, url });
+						}
 					}
-				}
 
-				return parsedResponse;
+					const response = await makeRequestWithState(
+						url,
+						headers,
+						serializedRequest,
+						cacheKey,
+						hydrationState,
+						ssr,
+					);
+
+					// Execute post middleware
+					if (middleware) {
+						for (const m of middleware) {
+							await m.post({
+								body: response.raw,
+								headers: response.headers,
+								url,
+							});
+						}
+					}
+
+					return serializer.parse(response.raw);
+				})();
 			};
 		},
 	}) as Client<T>;
@@ -115,16 +116,6 @@ async function makeRequestWithState(
 	state?: HydrationState,
 	ssr?: boolean,
 ) {
-	const cachedData = state?.data[cacheKey];
-
-	// Lookup in cache
-	if (cachedData !== undefined) {
-		return {
-			raw: cachedData.body,
-			headers: cachedData.headers,
-		};
-	}
-
 	const response = await fetch(url, {
 		method: "post",
 		headers: {

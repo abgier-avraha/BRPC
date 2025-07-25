@@ -1,5 +1,3 @@
-"use client";
-
 import type { HydrationState } from "brpc-client/src";
 import type React from "react";
 import { createContext, useContext } from "react";
@@ -10,11 +8,6 @@ type Props = {
 };
 
 const HydrationContext = createContext<HydrationState | undefined>(undefined);
-
-export const createHydrationState = () => ({
-	type: "hydration" as const,
-	data: {},
-});
 
 export function HydrationProvider(props: Props) {
 	return (
