@@ -108,11 +108,11 @@ export function Providers(props: {
 ```
 
 ```tsx
-// Setup the backend client
-// Make your prefetch requests
-// Pass the hydration snapshot to the frontend client
 export default async function Page() {
+  // Setup the backend client
 	const { api, hydrationSnapshot } = createApi();
+
+  // Make your prefetch requests
 	await api.echo({
 		phrase: "test",
 		date: new Date("1995-12-17T03:24:00"),
@@ -123,6 +123,7 @@ export default async function Page() {
 
 	return (
 		<div>
+      {/* Pass the hydration snapshot to the frontend client */}
 			<Providers hydrationSnapshot={hydrationSnapshot}>
 				<Suspense fallback={<div>Loading...</div>}>
 					<SuspendedComponent />
@@ -134,12 +135,11 @@ export default async function Page() {
 ```
 
 ```tsx
-// Make your client side requests
-// Client components will fully render server side granted data was prefetched by the backend client
-// The function and args must match between the serve and client for SSR to succeeed
+// Client components will fully render server side according to what is in the hydration snapshot
 export const SuspendedComponent = () => {
-	const api = useApi();
+	const api = useBrpc<ApiType>();
 
+  // The rpc and args must match between the serve and client for SSR to succeed
 	const data = suspend("echo-random", () =>
 		api.echo({
 			phrase: "test",
