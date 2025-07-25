@@ -70,8 +70,9 @@ export function createChannel<T extends BrpcApi<any, any>>(
 					// Check cache
 					const cachedData = hydrationState?.data[cacheKey];
 					if (cachedData !== undefined) {
+						// Return synchronously
 						const parsed = serializer.parse(cachedData.body);
-						return parsed; // ✅ Return synchronously
+						return parsed;
 					}
 
 					// Return a Promise if no cached data

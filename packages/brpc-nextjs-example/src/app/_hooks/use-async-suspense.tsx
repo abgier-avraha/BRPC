@@ -10,7 +10,12 @@ export function useAsyncSuspense<T>(
 	let result: T;
 	let error: any;
 
-	const promise = Promise.resolve(fetcher()).then(
+	const res = fetcher();
+	if (!(res instanceof Promise)) {
+		return res;
+	}
+
+	const promise = Promise.resolve(res).then(
 		(res) => {
 			status = "success";
 			result = res;
@@ -21,9 +26,9 @@ export function useAsyncSuspense<T>(
 			error = err;
 		},
 	);
-
 	if (status === "pending") throw promise;
 	if (status === "error") throw error;
+
 	// biome-ignore lint/style/noNonNullAssertion: runtime safe
 	return result!;
 }
