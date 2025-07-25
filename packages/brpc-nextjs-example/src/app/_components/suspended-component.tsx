@@ -1,13 +1,13 @@
 "use client";
 
+import { suspend } from "brpc-client/src";
 import { useApi } from "../_hooks/use-api";
-import { useAsyncSuspense } from "../_hooks/use-async-suspense";
 
 export const SuspendedComponent = () => {
 	const api = useApi();
 
 	// TODO: some sort of expiry time? serial args?
-	const data = useAsyncSuspense("echo-random", () =>
+	const data = suspend("echo-random", () =>
 		api.echo({
 			phrase: "test",
 			date: new Date("1995-12-17T03:24:00"),

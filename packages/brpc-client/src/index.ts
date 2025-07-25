@@ -112,6 +112,39 @@ export function createChannel<T extends BrpcApi<any, any>>(
 	}) as BrpcClient<T>;
 }
 
+const cache = new Map<string, any>();
+
+// TODO: Using `async` keyword breaks cache finding during SSR
+export function suspend<T>(key: string, rpc: () => Promise<T> | T): T {
+	if (cache.has(key)) return cache.get(key);
+
+	let status: "pending" | "success" | "error" = "pending";
+	let result: T;
+	let error: any;
+
+	const res = rpc();
+	if (!(res instanceof Promise)) {
+		return res;
+	}
+
+	const promise = Promise.resolve(res).then(
+		(res) => {
+			status = "success";
+			result = res;
+			cache.set(key, result);
+		},
+		(err) => {
+			status = "error";
+			error = err;
+		},
+	);
+	if (status === "pending") throw promise;
+	if (status === "error") throw error;
+
+	// biome-ignore lint/style/noNonNullAssertion: runtime safe
+	return result!;
+}
+
 async function makeRequestWithState(
 	url: string,
 	reqHeaders: {},
