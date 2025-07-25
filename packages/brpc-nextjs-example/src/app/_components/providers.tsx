@@ -2,7 +2,7 @@
 
 import { createChannel, type HydrationState } from "brpc-client/src";
 import { BrpcProvider } from "brpc-react";
-import { Suspense, useMemo } from "react";
+import { useMemo } from "react";
 import type { ApiType } from "../../../run-brpc-server";
 import superjson from "superjson";
 
@@ -18,9 +18,5 @@ export function Providers(props: {
 		});
 	}, [props.hydration]);
 
-	return (
-		<BrpcProvider api={frontendClient}>
-			<Suspense fallback={<div>Loading...</div>}>{props.children}</Suspense>
-		</BrpcProvider>
-	);
+	return <BrpcProvider api={frontendClient}>{props.children}</BrpcProvider>;
 }
