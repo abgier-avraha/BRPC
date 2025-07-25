@@ -8,15 +8,15 @@ import superjson from "superjson";
 
 export function Providers(props: {
 	children: React.ReactNode;
-	hydration: HydrationSnapshot;
+	hydrationSnapshot: HydrationSnapshot;
 }) {
 	const frontendClient = useMemo(() => {
 		return createChannel<ApiType>("http://localhost:3001", {
 			middleware: [],
 			serializer: superjson,
-			hydrationSnapshot: props.hydration,
+			hydrationSnapshot: props.hydrationSnapshot,
 		});
-	}, [props.hydration]);
+	}, [props.hydrationSnapshot]);
 
 	return <BrpcProvider api={frontendClient}>{props.children}</BrpcProvider>;
 }

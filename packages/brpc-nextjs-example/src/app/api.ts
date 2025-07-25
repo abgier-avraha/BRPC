@@ -4,14 +4,14 @@ import type { ApiType } from "../../run-brpc-server";
 import superjson from "superjson";
 
 export function createApi() {
-	const hydration = createHydrationState();
+	const hydrationSnapshot = createHydrationState();
 
 	const api = createChannel<ApiType>("http://localhost:3001", {
 		middleware: [],
 		serializer: superjson,
-		hydrationSnapshot: hydration,
+		hydrationSnapshot: hydrationSnapshot,
 		dehydrate: true,
 	});
 
-	return { api, hydration };
+	return { api, hydrationSnapshot };
 }
