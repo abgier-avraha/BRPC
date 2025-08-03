@@ -14,6 +14,9 @@ importers:
 
   packages/brpc-client:
     dependencies:
+      '@tanstack/react-query':
+        specifier: 5.84.1
+        version: 5.84.1(react@19.1.0)
       brpc-server:
         specifier: workspace:*
         version: link:../brpc-server
@@ -33,6 +36,9 @@ importers:
 
   packages/brpc-nextjs-example:
     dependencies:
+      '@tanstack/react-query':
+        specifier: 5.84.1
+        version: 5.84.1(react@19.1.0)
       brpc-client:
         specifier: workspace:*
         version: link:../brpc-client
@@ -859,6 +865,14 @@ packages:
 
   '@tailwindcss/postcss@4.1.11':
     resolution: {integrity: sha512-q/EAIIpF6WpLhKEuQSEVMZNMIY8KhWoAemZ9eylNAih9jxMGAYPPWBn3I9QL/2jZ+e7OEz/tZkX5HwbBR4HohA==}
+
+  '@tanstack/query-core@5.83.1':
+    resolution: {integrity: sha512-OG69LQgT7jSp+5pPuCfzltq/+7l2xoweggjme9vlbCPa/d7D7zaqv5vN/S82SzSYZ4EDLTxNO1PWrv49RAS64Q==}
+
+  '@tanstack/react-query@5.84.1':
+    resolution: {integrity: sha512-zo7EUygcWJMQfFNWDSG7CBhy8irje/XY0RDVKKV4IQJAysb+ZJkkJPcnQi+KboyGUgT+SQebRFoTqLuTtfoDLw==}
+    peerDependencies:
+      react: ^18 || ^19
 
   '@testing-library/dom@10.4.0':
     resolution: {integrity: sha512-pemlzrSESWbdAloYml3bAJMEfNh1Z7EduzqPKprCH5S341frlpYnUEW0H72dLxa6IsYr+mPno20GiSm+h9dEdQ==}
@@ -2186,6 +2200,13 @@ snapshots:
       '@tailwindcss/oxide': 4.1.11
       postcss: 8.5.6
       tailwindcss: 4.1.11
+
+  '@tanstack/query-core@5.83.1': {}
+
+  '@tanstack/react-query@5.84.1(react@19.1.0)':
+    dependencies:
+      '@tanstack/query-core': 5.83.1
+      react: 19.1.0
 
   '@testing-library/dom@10.4.0':
     dependencies:

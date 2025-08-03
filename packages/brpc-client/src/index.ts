@@ -18,18 +18,6 @@ export interface ChannelResponse {
 	url: string;
 }
 
-export type HydrationSnapshot = {
-	type: "hydration";
-	data: Record<
-		string,
-		{
-			body: string;
-			headers: Record<string, string>;
-			date: Date;
-		}
-	>;
-};
-
 interface IChannelMiddleware {
 	pre: (req: ChannelRequest) => Promise<void>;
 	post: (res: ChannelResponse) => Promise<void>;
@@ -43,20 +31,9 @@ export function createChannel<T extends BrpcApi<any, any>>(
 			stringify: (obj: any) => string;
 			parse: (string: string) => any;
 		};
-		// Use on the server to enable writing to the hydration snapshot
-		dehydrate?: boolean;
-		hydrationSnapshot?: HydrationSnapshot;
 	},
 ): BrpcClient<T> {
-	const {
-		serializer = JSON,
-		middleware = [],
-		dehydrate: ssr = false,
-		hydrationSnapshot: hydrationSnapshot,
-	} = opts;
-	if (ssr === true && !hydrationSnapshot) {
-		throw new Error("SSR enabled but no hydration state provided to write to.");
-	}
+	const { serializer = JSON, middleware = [] } = opts;
 
 	return new Proxy(new Object(), {
 		get(target: Record<string, (req: any) => any>, name: string) {
@@ -66,17 +43,7 @@ export function createChannel<T extends BrpcApi<any, any>>(
 					const url = `${host}/${String(name)}`;
 					const headers = {};
 					const serializedRequest = serializer.stringify(req);
-					const cacheKey = `URL:${url}-REQ:${serializedRequest}`;
 
-					// Check cache
-					const cachedData = hydrationSnapshot?.data[cacheKey];
-					if (cachedData !== undefined) {
-						// Return synchronously
-						const parsed = serializer.parse(cachedData.body);
-						return parsed;
-					}
-
-					// Return a Promise if no cached data
 					return (async () => {
 						if (middleware) {
 							for (const m of middleware) {
@@ -84,14 +51,7 @@ export function createChannel<T extends BrpcApi<any, any>>(
 							}
 						}
 
-						const response = await makeRequestWithState(
-							url,
-							headers,
-							serializedRequest,
-							cacheKey,
-							hydrationSnapshot,
-							ssr,
-						);
+						const response = await makeRequest(url, headers, serializedRequest);
 
 						if (middleware) {
 							for (const m of middleware) {
@@ -113,47 +73,7 @@ export function createChannel<T extends BrpcApi<any, any>>(
 	}) as BrpcClient<T>;
 }
 
-const cache = new Map<string, any>();
-
-// TODO: Using `async` keyword breaks cache finding during SSR
-export function suspend<T>(key: string, rpc: () => Promise<T> | T): T {
-	if (cache.has(key)) return cache.get(key);
-
-	let status: "pending" | "success" | "error" = "pending";
-	let result: T;
-	let error: any;
-
-	const res = rpc();
-	if (!(res instanceof Promise)) {
-		return res;
-	}
-
-	const promise = Promise.resolve(res).then(
-		(res) => {
-			status = "success";
-			result = res;
-			cache.set(key, result);
-		},
-		(err) => {
-			status = "error";
-			error = err;
-		},
-	);
-	if (status === "pending") throw promise;
-	if (status === "error") throw error;
-
-	// biome-ignore lint/style/noNonNullAssertion: runtime safe
-	return result!;
-}
-
-async function makeRequestWithState(
-	url: string,
-	reqHeaders: {},
-	request: BodyInit,
-	cacheKey: string,
-	state?: HydrationSnapshot,
-	ssr?: boolean,
-) {
+async function makeRequest(url: string, reqHeaders: {}, request: BodyInit) {
 	const response = await fetch(url, {
 		method: "post",
 		headers: {
@@ -169,16 +89,6 @@ async function makeRequestWithState(
 	response.headers.forEach((v, k) => {
 		resHeaders[k] = v;
 	});
-
-	if (ssr && state) {
-		state.data = {
-			[cacheKey]: {
-				body: raw,
-				headers: resHeaders,
-				date: new Date(),
-			},
-		};
-	}
 
 	return {
 		raw,

@@ -85,53 +85,74 @@ You can also codegen a client for a non-TypeScript application from the open API
 ### React Integration
 
 - Full SSR with client side hydration example can be found here `packages/brpc-nextjs-example`
-  - Allows you to prefetch requests on the server and build your hydration snapshot
-  - Allows client side components to instantly access prefetched data during server side rendering by using the hydration snapshot
+  - Utilizes TanStack's `useSuspenseQuery`
 
 
 ```tsx
 // Setup your frontend client provider
+"use client";
+
+import { createChannel } from "brpc-client/src";
+import { BrpcProvider } from "brpc-react";
+import { useMemo } from "react";
+import type { ApiType } from "../../../run-brpc-server";
+import superjson from "superjson";
+import {
+	DehydratedState,
+	hydrate,
+	QueryClient,
+	QueryClientProvider,
+} from "@tanstack/react-query";
+
+const queryClient = new QueryClient();
+
 export function Providers(props: {
 	children: React.ReactNode;
-	hydration: HydrationSnapshot;
+	state: DehydratedState;
 }) {
 	const frontendClient = useMemo(() => {
 		return createChannel<ApiType>("http://localhost:3001", {
 			middleware: [],
 			serializer: superjson,
-			hydrationSnapshot: props.hydration,
 		});
-	}, [props.hydration]);
+	}, []);
 
-	return <BrpcProvider api={frontendClient}>{props.children}</BrpcProvider>;
+	hydrate(queryClient, props.state);
+
+	return (
+		<QueryClientProvider client={queryClient}>
+			<BrpcProvider api={frontendClient}>{props.children}</BrpcProvider>
+		</QueryClientProvider>
+	);
 }
 ```
 
 ```tsx
+import { Suspense } from "react";
+import { SuspendedComponent } from "./_components/suspended-component";
+import { createApi } from "./api";
+import { Providers } from "./_components/providers";
+import { dehydrate } from "@tanstack/react-query";
+
 export default async function Page() {
-	// Setup the backend client
-	const hydrationSnapshot = createHydrationState();
-
-	const api = createChannel<ApiType>("http://localhost:3001", {
-		middleware: [],
-		serializer: superjson,
-		hydrationSnapshot: hydrationSnapshot,
-		dehydrate: true,
+	const { queryClient, api } = createApi();
+	await queryClient.prefetchQuery({
+		queryKey: ["echo-random"],
+		queryFn: () =>
+			api.echo({
+				phrase: "test",
+				date: new Date("1995-12-17T03:24:00"),
+				nested: {
+					arrayOfNumbers: [1, 2, 3, 4],
+				},
+			}),
 	});
 
-	// Make your prefetch requests
-	await api.echo({
-		phrase: "test",
-		date: new Date("1995-12-17T03:24:00"),
-		nested: {
-			arrayOfNumbers: [1, 2, 3, 4],
-		},
-	});
+	const dehydratedState = dehydrate(queryClient);
 
 	return (
-		<div>
-			{/* Pass the hydration snapshot to the frontend client */}
-			<Providers hydrationSnapshot={hydrationSnapshot}>
+		<div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
+			<Providers state={dehydratedState}>
 				<Suspense fallback={<div>Loading...</div>}>
 					<SuspendedComponent />
 				</Suspense>
@@ -143,19 +164,25 @@ export default async function Page() {
 
 ```tsx
 // Client components will fully render server side according to what is in the hydration snapshot
-export const SuspendedComponent = () => {
-	const api = useBrpc<ApiType>();
+"use client";
 
-	// The rpc and args must match between the serve and client for SSR to succeed
-	const data = suspend("echo-random", () =>
-		api.echo({
-			phrase: "test",
-			date: new Date("1995-12-17T03:24:00"),
-			nested: {
-				arrayOfNumbers: [1, 2, 3, 4],
-			},
-		}),
-	);
+import { useApi } from "../_hooks/use-api";
+import { useSuspenseQuery } from "@tanstack/react-query";
+
+export const SuspendedComponent = () => {
+	const api = useApi();
+
+	const { data } = useSuspenseQuery({
+		queryKey: ["echo-random"],
+		queryFn: () =>
+			api.echo({
+				phrase: "test",
+				date: new Date("1995-12-17T03:24:00"),
+				nested: {
+					arrayOfNumbers: [1, 2, 3, 4],
+				},
+			}),
+	});
 
 	return (
 		<div>
@@ -165,6 +192,7 @@ export const SuspendedComponent = () => {
 		</div>
 	);
 };
+
 ```
 
 ## Dev

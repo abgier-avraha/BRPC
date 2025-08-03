@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { createChannel } from "brpc-client/src";
-import { createHydrationState } from "brpc-react/src/hydration-state";
 import { generateOpenApiSpec, startServer } from "brpc-server/src";
 import fetch from "cross-fetch";
 import superjson from "superjson";
@@ -80,35 +79,4 @@ test("Generate OpenAPI Spec", async () => {
 	expect(generateOpenApiSpec(testApi)).toBe(
 		fs.readFileSync(path.join(__dirname, "api.spec.snapshot.yml"), "utf8"),
 	);
-});
-
-test("Execute RPC from Client Channel with Hydration Cache", async () => {
-	// Arrange
-	const state = createHydrationState();
-	const server = await startServer(testApi, 3003, superjson);
-	const serverClient = createChannel<ApiType>("http://localhost:3003", {
-		middleware: [],
-		serializer: superjson,
-		hydrationSnapshot: state,
-		dehydrate: true,
-	});
-
-	const frontendClient = createChannel<ApiType>("http://localhost:3003", {
-		middleware: [],
-		serializer: superjson,
-		hydrationSnapshot: state,
-		dehydrate: false,
-	});
-
-	// Act
-	const serverRes = await serverClient.currentTime({});
-	const frontendRes = await frontendClient.currentTime({});
-
-	// Assert
-	expect(frontendRes).toEqual({
-		date: serverRes.date,
-	});
-
-	// Cleanup
-	server.stop();
 });
