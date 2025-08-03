@@ -14,9 +14,6 @@ importers:
 
   packages/brpc-client:
     dependencies:
-      '@tanstack/react-query':
-        specifier: 5.84.1
-        version: 5.84.1(react@19.1.0)
       brpc-server:
         specifier: workspace:*
         version: link:../brpc-server
@@ -94,6 +91,9 @@ importers:
 
   packages/brpc-react:
     dependencies:
+      '@tanstack/react-query':
+        specifier: 5.84.1
+        version: 5.84.1(react@19.1.0)
       brpc-client:
         specifier: workspace:*
         version: link:../brpc-client

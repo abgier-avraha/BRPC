@@ -1,7 +1,7 @@
 "use client";
 
 import { createChannel } from "brpc-client/src";
-import { BrpcProvider } from "brpc-react";
+import { BrpcReactProvider } from "brpc-react";
 import { useMemo } from "react";
 import type { ApiType } from "../../../run-brpc-server";
 import superjson from "superjson";
@@ -55,7 +55,9 @@ export function Providers(props: {
 
 	return (
 		<QueryClientProvider client={queryClient}>
-			<BrpcProvider api={frontendClient}>{props.children}</BrpcProvider>
+			<BrpcReactProvider api={frontendClient}>
+				{props.children}
+			</BrpcReactProvider>
 		</QueryClientProvider>
 	);
 }
