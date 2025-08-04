@@ -121,7 +121,9 @@ export function Providers(props: {
 
 	return (
 		<QueryClientProvider client={queryClient}>
-			<BrpcProvider api={frontendClient}>{props.children}</BrpcProvider>
+			<BrpcReactProvider api={frontendClient}>
+				{props.children}
+			</BrpcReactProvider>
 		</QueryClientProvider>
 	);
 }

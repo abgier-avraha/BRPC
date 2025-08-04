@@ -1,33 +1,17 @@
 import { Suspense } from "react";
 import { SuspendedComponent } from "./_components/suspended-component";
-import { createApi } from "./api";
+import { api, queryClient } from "./api";
 import { Providers } from "./_components/providers";
 import { dehydrate } from "@tanstack/react-query";
 
 export default async function Page() {
-	const { queryClient, api } = createApi();
-
-	// TODO: tanstack server client
-	await queryClient.prefetchQuery({
-		queryKey: [
-			JSON.stringify({
-				phrase: "",
-				date: new Date("1995-12-17T03:24:00"),
-				nested: {
-					arrayOfNumbers: [1],
-				},
-			}),
-		],
-		queryFn: () =>
-			api.echo({
-				phrase: "",
-				date: new Date("1995-12-17T03:24:00"),
-				nested: {
-					arrayOfNumbers: [1],
-				},
-			}),
+	await api.echo.prefetchQuery({
+		phrase: "",
+		date: new Date("1995-12-17T03:24:00"),
+		nested: {
+			arrayOfNumbers: [1],
+		},
 	});
-
 	const dehydratedState = dehydrate(queryClient);
 
 	return (

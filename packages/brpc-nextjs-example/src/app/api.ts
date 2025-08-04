@@ -2,14 +2,12 @@ import { createChannel } from "brpc-client/src";
 import type { ApiType } from "../../run-brpc-server";
 import superjson from "superjson";
 import { QueryClient } from "@tanstack/react-query";
+import { createBrpcServerClient } from "brpc-react";
 
-export function createApi() {
-	const queryClient = new QueryClient();
+export const queryClient = new QueryClient();
+export const brpcClient = createChannel<ApiType>("http://localhost:3001", {
+	middleware: [],
+	serializer: superjson,
+});
 
-	const api = createChannel<ApiType>("http://localhost:3001", {
-		middleware: [],
-		serializer: superjson,
-	});
-
-	return { api, queryClient };
-}
+export const api = createBrpcServerClient(brpcClient, queryClient);
