@@ -15,6 +15,7 @@ import type { BrpcClient } from "brpc-client/src";
 import type { BrpcApi } from "brpc-server/src";
 import { createContext, useContext } from "react";
 import type { BrpcError } from "./index";
+import stableStringify from "json-stable-stringify";
 
 type BrpcQueryClient<T extends BrpcApi<any, any>> = {
 	[K in keyof BrpcClient<T>]: BrpcQueryRpc<
@@ -27,11 +28,17 @@ type BrpcQueryClient<T extends BrpcApi<any, any>> = {
 type BrpcQueryRpc<Params, Returns> = {
 	useSuspenseQuery: (
 		req: Params,
-		options?: UseSuspenseQueryOptions<Awaited<Returns>, BrpcError>,
+		options?: MakeOptional<
+			UseSuspenseQueryOptions<Awaited<Returns>, BrpcError>,
+			"queryKey"
+		>,
 	) => UseSuspenseQueryResult<Awaited<Returns>>;
 	useQuery: (
 		req: Params,
-		options?: UseQueryOptions<Awaited<Returns>, BrpcError>,
+		options?: MakeOptional<
+			UseQueryOptions<Awaited<Returns>, BrpcError>,
+			"queryKey"
+		>,
 	) => UseQueryResult<Awaited<Returns>>;
 	useMutation: (
 		options?: UseMutationOptions<Awaited<Returns>>,
@@ -53,23 +60,29 @@ export function createBrpcQueryClient<T extends BrpcApi<any, any>>(
 				target[name] = {
 					useSuspenseQuery: (
 						req: any,
-						options?: UseSuspenseQueryOptions<any, any>,
+						options?: MakeOptional<
+							UseSuspenseQueryOptions<any, any>,
+							"queryKey"
+						>,
 					) => {
 						return useSuspenseQuery(
 							{
-								...options,
-								queryKey: [JSON.stringify(req)],
+								queryKey: [stableStringify(req)],
 								queryFn: () => api[name](req),
+								...options,
 							},
 							queryClient,
 						);
 					},
-					useQuery: (req: any, options?: UseQueryOptions<any, any>) => {
+					useQuery: (
+						req: any,
+						options?: MakeOptional<UseQueryOptions<any, any>, "queryKey">,
+					) => {
 						return useQuery(
 							{
-								...options,
-								queryKey: [JSON.stringify(req)],
+								queryKey: [stableStringify(req)],
 								queryFn: () => api[name](req),
+								...options,
 							},
 							queryClient,
 						);
@@ -77,8 +90,8 @@ export function createBrpcQueryClient<T extends BrpcApi<any, any>>(
 					useMutation: (options?: UseMutationOptions<any>) => {
 						return useMutation(
 							{
-								...options,
 								mutationFn: (req) => api[name](req),
+								...options,
 							},
 							queryClient,
 						);
@@ -117,3 +130,5 @@ type BrpcProviderProps = {
 };
 
 const BrpcContext = createContext<BrpcQueryClient<any> | undefined>(undefined);
+
+type MakeOptional<T, K extends keyof T> = Omit<T, K> & Partial<Pick<T, K>>;

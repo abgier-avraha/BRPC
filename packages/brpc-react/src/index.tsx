@@ -1,6 +1,7 @@
 import type { FetchQueryOptions, QueryClient } from "@tanstack/react-query";
 import type { BrpcClient } from "brpc-client/src";
 import type { BrpcApi } from "brpc-server/src";
+import stableStringify from "json-stable-stringify";
 
 export type BrpcError = unknown;
 
@@ -36,9 +37,9 @@ export function createBrpcServerClient<T extends BrpcApi<any, any>>(
 						options?: FetchQueryOptions<any, any>,
 					) => {
 						await queryClient.prefetchQuery({
-							...options,
-							queryKey: [JSON.stringify(req)],
+							queryKey: [stableStringify(req)],
 							queryFn: () => api[name](req),
+							...options,
 						});
 					},
 					exec: api[name],
