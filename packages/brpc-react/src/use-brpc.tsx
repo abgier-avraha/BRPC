@@ -13,9 +13,9 @@ import {
 } from "@tanstack/react-query";
 import type { BrpcClient } from "brpc-client/src";
 import type { BrpcApi } from "brpc-server/src";
+import stableStringify from "json-stable-stringify";
 import { createContext, useContext } from "react";
 import type { BrpcError } from "./index";
-import stableStringify from "json-stable-stringify";
 
 type BrpcQueryClient<T extends BrpcApi<any, any>> = {
 	[K in keyof BrpcClient<T>]: BrpcQueryRpc<
