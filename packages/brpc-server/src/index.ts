@@ -41,53 +41,60 @@ export function startServer<
 		app.use(express.text());
 
 		Object.keys(brpcApi.api as Object).forEach((key) => {
-			app.post(`/${key}`, async (req, res) => {
-				// Parse request
-				const parsedRequest = serializer.parse(req.body);
+			app.post(
+				`/${key}`,
+				safeRoute(async (req, res) => {
+					// Parse request
+					const parsedRequest = serializer.parse(req.body);
 
-				// Create context
-				const context: Context = brpcApi.contextFetcher();
+					// Create context
+					const context: Context = brpcApi.contextFetcher();
 
-				// Get rpc
-				const rpc = brpcApi.api[
-					key as keyof BrpcApi<Context, Policies, T>["api"]
-				] as Brpc<z.Schema, z.Schema, Context, IPolicies<Context>>;
+					// Get rpc
+					const rpc = brpcApi.api[
+						key as keyof BrpcApi<Context, Policies, T>["api"]
+					] as Brpc<z.Schema, z.Schema, Context, IPolicies<Context>>;
 
-				// Pre middleware
-				const { policies = [] } = rpc;
-				const baseMiddleware = (brpcApi.policies["base" as const] ?? []).flat();
-				const matchingMiddleware = [
-					...baseMiddleware,
-					...policies.flatMap((policyKey) => brpcApi.policies[policyKey] ?? []),
-				];
+					// Pre middleware
+					const { policies = [] } = rpc;
+					const baseMiddleware = (
+						brpcApi.policies["base" as const] ?? []
+					).flat();
+					const matchingMiddleware = [
+						...baseMiddleware,
+						...policies.flatMap(
+							(policyKey) => brpcApi.policies[policyKey] ?? [],
+						),
+					];
 
-				for (const middleware of matchingMiddleware) {
-					await middleware.pre(req, res, context);
-					if (res.headersSent) {
-						return;
+					for (const middleware of matchingMiddleware) {
+						await middleware.pre(req, res, context);
+						if (res.headersSent) {
+							return;
+						}
 					}
-				}
 
-				// Validate input
-				z.object({}).parseAsync;
-				await rpc.requestSchema.parseAsync(parsedRequest);
+					// Validate input
+					z.object({}).parseAsync;
+					await rpc.requestSchema.parseAsync(parsedRequest);
 
-				// Handle
-				const apiHandlerResult = await rpc.handler(parsedRequest, context);
+					// Handle
+					const apiHandlerResult = await rpc.handler(parsedRequest, context);
 
-				// Validate output
-				await rpc.responseSchema.parseAsync(apiHandlerResult);
+					// Validate output
+					await rpc.responseSchema.parseAsync(apiHandlerResult);
 
-				// Response
-				const serializedResponse = serializer.stringify(apiHandlerResult);
+					// Response
+					const serializedResponse = serializer.stringify(apiHandlerResult);
 
-				res.send(serializedResponse);
+					res.send(serializedResponse);
 
-				// Post middleware
-				for (const middleware of matchingMiddleware) {
-					await middleware.post(req, res, context);
-				}
-			});
+					// Post middleware
+					for (const middleware of matchingMiddleware) {
+						await middleware.post(req, res, context);
+					}
+				}),
+			);
 		});
 
 		const server = app.listen(port, () => {
@@ -200,4 +207,18 @@ interface Brpc<
 
 function capitalize(string: string) {
 	return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+function safeRoute(handler: express.RequestHandler) {
+	return (
+		req: express.Request,
+		res: express.Response,
+		next: express.NextFunction,
+	) => {
+		Promise.resolve(handler(req, res, next)).catch((err) => {
+			console.error(err);
+			if (!res.headersSent)
+				res.status(500).json({ error: "Internal Server Error" });
+		});
+	};
 }

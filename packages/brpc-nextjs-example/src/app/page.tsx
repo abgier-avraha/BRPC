@@ -6,14 +6,24 @@ import { dehydrate } from "@tanstack/react-query";
 
 export default async function Page() {
 	const { queryClient, api } = createApi();
+
+	// TODO: tanstack server client
 	await queryClient.prefetchQuery({
-		queryKey: ["echo-random"],
-		queryFn: () =>
-			api.echo({
-				phrase: "test",
+		queryKey: [
+			JSON.stringify({
+				phrase: "",
 				date: new Date("1995-12-17T03:24:00"),
 				nested: {
-					arrayOfNumbers: [1, 2, 3, 4],
+					arrayOfNumbers: [1],
+				},
+			}),
+		],
+		queryFn: () =>
+			api.echo({
+				phrase: "",
+				date: new Date("1995-12-17T03:24:00"),
+				nested: {
+					arrayOfNumbers: [1],
 				},
 			}),
 	});

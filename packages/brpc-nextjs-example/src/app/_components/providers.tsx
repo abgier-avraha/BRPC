@@ -10,7 +10,6 @@ import {
 	hydrate,
 	QueryClient,
 	QueryClientProvider,
-	useQueryClient,
 } from "@tanstack/react-query";
 
 const queryClient = new QueryClient();
