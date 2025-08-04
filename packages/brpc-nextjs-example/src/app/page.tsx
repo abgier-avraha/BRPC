@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 import { SuspendedComponent } from "./_components/suspended-component";
-import { api, queryClient } from "./api";
-import { Providers } from "./_components/providers";
-import { dehydrate } from "@tanstack/react-query";
+import { api } from "./api";
+import { BrpcHydrationProvider } from "./_components/brpc-hydration-provider";
 
 export default async function Page() {
 	await api.echo.prefetchQuery({
@@ -12,15 +11,14 @@ export default async function Page() {
 			arrayOfNumbers: [1],
 		},
 	});
-	const dehydratedState = dehydrate(queryClient);
 
 	return (
 		<div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-			<Providers state={dehydratedState}>
+			<BrpcHydrationProvider>
 				<Suspense fallback={<div>Loading...</div>}>
 					<SuspendedComponent />
 				</Suspense>
-			</Providers>
+			</BrpcHydrationProvider>
 		</div>
 	);
 }

@@ -8,7 +8,7 @@ import {
 } from "@tanstack/react-query";
 import { brpcClient, queryClient } from "../api";
 
-export function Providers(props: {
+export function BrpcProviders(props: {
 	children: React.ReactNode;
 	state: DehydratedState;
 }) {
