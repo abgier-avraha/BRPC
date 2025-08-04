@@ -29,7 +29,7 @@ class LoggerMiddleware implements IMiddleware<ServerContext> {
 
 type ServerContext = {};
 
-const EchoRequestSchema = z.object({
+export const EchoRequestSchema = z.object({
 	phrase: z.string(),
 	date: z.date(),
 	nested: z.object({
@@ -37,7 +37,7 @@ const EchoRequestSchema = z.object({
 	}),
 });
 
-const EchoResponseSchema = z.object({
+export const EchoResponseSchema = z.object({
 	phrase: z.string(),
 	date: z.date(),
 	nested: z.object({
@@ -45,9 +45,9 @@ const EchoResponseSchema = z.object({
 	}),
 });
 
-const CurrentTimeRequestSchema = z.object({});
+export const CurrentTimeRequestSchema = z.object({});
 
-const CurrentTimeResponseSchema = z.object({
+export const CurrentTimeResponseSchema = z.object({
 	date: z.date(),
 });
 

@@ -92,71 +92,69 @@ You can also codegen a client for a non-TypeScript application from the open API
 // Setup your frontend client provider
 "use client";
 
-import { createChannel } from "brpc-client/src";
-import { BrpcProvider } from "brpc-react";
-import { useMemo } from "react";
-import type { ApiType } from "../../../run-brpc-server";
-import superjson from "superjson";
+import { BrpcReactProvider } from "brpc-react/src/use-brpc";
 import {
 	DehydratedState,
 	hydrate,
-	QueryClient,
 	QueryClientProvider,
 } from "@tanstack/react-query";
+import { brpcClient, queryClient } from "../api";
 
-const queryClient = new QueryClient();
-
-export function Providers(props: {
+export function BrpcProviders(props: {
 	children: React.ReactNode;
 	state: DehydratedState;
 }) {
-	const frontendClient = useMemo(() => {
-		return createChannel<ApiType>("http://localhost:3001", {
-			middleware: [],
-			serializer: superjson,
-		});
-	}, []);
-
 	hydrate(queryClient, props.state);
 
 	return (
 		<QueryClientProvider client={queryClient}>
-			<BrpcProvider api={frontendClient}>{props.children}</BrpcProvider>
+			<BrpcReactProvider client={brpcClient}>
+				{props.children}
+			</BrpcReactProvider>
 		</QueryClientProvider>
 	);
 }
 ```
 
 ```tsx
+// Add hydration support
+
+import { ReactNode } from "react";
+import { BrpcProviders } from "./brpc-providers";
+import { dehydrate } from "@tanstack/react-query";
+import { queryClient } from "../api";
+
+export async function BrpcHydrationProvider(props: { children: ReactNode }) {
+	const dehydratedState = dehydrate(queryClient);
+	return (
+		<BrpcProviders state={dehydratedState}>{props.children}</BrpcProviders>
+	);
+}
+```
+
+```tsx
+// Perform your data prefetching
 import { Suspense } from "react";
 import { SuspendedComponent } from "./_components/suspended-component";
-import { createApi } from "./api";
-import { Providers } from "./_components/providers";
-import { dehydrate } from "@tanstack/react-query";
+import { api } from "./api";
+import { BrpcHydrationProvider } from "./_components/brpc-hydration-provider";
 
 export default async function Page() {
-	const { queryClient, api } = createApi();
-	await queryClient.prefetchQuery({
-		queryKey: ["echo-random"],
-		queryFn: () =>
-			api.echo({
-				phrase: "test",
-				date: new Date("1995-12-17T03:24:00"),
-				nested: {
-					arrayOfNumbers: [1, 2, 3, 4],
-				},
-			}),
+	await api.echo.prefetchQuery({
+		phrase: "",
+		date: new Date("1995-12-17T03:24:00"),
+		nested: {
+			arrayOfNumbers: [1],
+		},
 	});
-
-	const dehydratedState = dehydrate(queryClient);
 
 	return (
 		<div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-			<Providers state={dehydratedState}>
+			<BrpcHydrationProvider>
 				<Suspense fallback={<div>Loading...</div>}>
 					<SuspendedComponent />
 				</Suspense>
-			</Providers>
+			</BrpcHydrationProvider>
 		</div>
 	);
 }
@@ -167,21 +165,16 @@ export default async function Page() {
 "use client";
 
 import { useApi } from "../_hooks/use-api";
-import { useSuspenseQuery } from "@tanstack/react-query";
 
 export const SuspendedComponent = () => {
 	const api = useApi();
 
-	const { data } = useSuspenseQuery({
-		queryKey: ["echo-random"],
-		queryFn: () =>
-			api.echo({
-				phrase: "test",
-				date: new Date("1995-12-17T03:24:00"),
-				nested: {
-					arrayOfNumbers: [1, 2, 3, 4],
-				},
-			}),
+	const { data } = api.echo.useSuspenseQuery({
+		phrase: "",
+		date: new Date("1995-12-17T03:24:00"),
+		nested: {
+			arrayOfNumbers: [1],
+		},
 	});
 
 	return (
@@ -192,7 +185,6 @@ export const SuspendedComponent = () => {
 		</div>
 	);
 };
-
 ```
 
 ## Dev
